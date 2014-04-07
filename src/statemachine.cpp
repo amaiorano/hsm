@@ -118,6 +118,16 @@ void StateMachine::ProcessStateTransitions()
 	}
 }
 
+void StateMachine::UpdateStates(HSM_STATE_UPDATE_ARGS)
+{
+	InnerToOuterIterator iter = BeginInnerToOuter();
+	InnerToOuterIterator end = EndInnerToOuter();
+	for ( ; iter != end; ++iter)
+	{
+		(*iter)->Update(HSM_STATE_UPDATE_ARGS_FORWARD);
+	}
+}
+
 State* StateMachine::GetState(StateTypeId stateType)
 {	
 	for (size_t i = 0; i < mStateStack.size(); ++i)

@@ -37,6 +37,11 @@
 #define HSM_DELETE delete
 #define HSM_DEBUG_NAME_MAXLEN 128
 
+#define HSM_STATE_UPDATE_ARGS void
+#define HSM_STATE_UPDATE_ARGS_FORWARD
+//#define HSM_STATE_UPDATE_ARGS float deltaTime
+//#define HSM_STATE_UPDATE_ARGS_FORWARD deltaTime
+
 typedef bool hsm_bool;
 #define hsm_true true
 #define hsm_false false

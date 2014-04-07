@@ -24,9 +24,6 @@ struct Player::States
 	// you could add utility functions for all states.
 	struct StateBase : StateWithOwner<Player>
 	{
-		// Custom frame-update function
-		virtual void FrameUpdate(float deltaTime) {}
-
 		// An example state message/event. @TODO: Add support for generic state messages.
 		virtual bool OnCombatStarted(const CombatInfo& combatInfo) { return false; }
 	};
@@ -88,6 +85,10 @@ struct Player::States
 		virtual Transition GetTransition()
 		{
 			return m_transition;
+		}
+
+		virtual void Update(/*float deltaTime*/)
+		{
 		}
 
 		virtual bool OnCombatStarted(const CombatInfo& combatInfo)
@@ -233,17 +234,21 @@ void Player::Shutdown()
 
 void Player::FrameUpdate(float deltaTime)
 {
-	// Update the state machine once per frame. This will first process all state transitions, and then once the
-	// stack has settled, will call FrameUpdate on all states from outer to inner.
+	// Update the state machine once per frame. This will first process all state transitions until
+	// the state stack has settled.
 	m_stateMachine.ProcessStateTransitions();
 
-	// Call custom update function on our states
-	InnerToOuterIterator iter = m_stateMachine.BeginInnerToOuter();
-	InnerToOuterIterator end = m_stateMachine.EndInnerToOuter();
-	for ( ; iter != end; ++iter)
-	{
-		static_cast<States::StateBase*>(*iter)->FrameUpdate(deltaTime);
-	}
+	// Update all states from outermost to innermost.
+	// To pass in deltaTime here, modify the HSM_STATE_UPDATE_ARGS macros in config.h
+	m_stateMachine.UpdateStates(/*deltaTime*/);
+
+	// This is how to invoke a custom function on our states
+	//InnerToOuterIterator iter = m_stateMachine.BeginInnerToOuter();
+	//InnerToOuterIterator end = m_stateMachine.EndInnerToOuter();
+	//for ( ; iter != end; ++iter)
+	//{
+	//	static_cast<States::StateBase*>(*iter)->CustomFunc();
+	//}
 
 	// Here we read a StateValue that may have been modified by the state machine
 	SetPlayerControlsLocked(m_bLockControls);

@@ -165,19 +165,29 @@ struct State
 
 	// OnEnter is invoked when a State is created; Note that GetStateMachine() is valid in OnEnter.
 	// Also note that the function does not need to be virtual as the state machine invokes it
-	// directly on the most-derived type (not polymorphically); however, we mark it virtual for consistency.
+	// directly on the most-derived type (not polymorphically); however, we make it virtual for consistency.
 	virtual void OnEnter() {}
 	
 	// If state expects StateArgs, the overridden version should look like this
 	//virtual void OnEnter(const Args& args);
-	
+
+	// OnExit is invoked just before a State is destroyed
 	virtual void OnExit() {}
 	
-	// Called by state machine from outermost to innermost state until settled on a state stack (NoTransition returned by all states)
+	// Called by StateMachine::ProcessStateTransitions from outermost to innermost state, repeatedly until
+	// the state stack has settled (i.e. all states return NoTransition). Override this function to return
+	// a state to transition to, or NoTransition to remain in this state. Generally, this function should avoid
+	// side-effects (updating state) as it may be called several times on the same state per ProcessStateTransitions.
+	// Instead, it should read state to determine whether a transition should be made. For udpating, override
+	// the Update function.
 	virtual Transition GetTransition()
 	{
 		return NoTransition();
 	}
+
+	// Called by StateMachine::UpdateStates from outermost to innermost state. Usually invoked after the state
+	// stack has settled, and is where a state can do it's work.
+	virtual void Update(HSM_STATE_UPDATE_ARGS) {}
 
 private:
 

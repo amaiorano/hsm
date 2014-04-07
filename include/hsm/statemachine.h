@@ -51,15 +51,12 @@ public:
 		SetDebugInfo(debugName, debugLevel);
 	}
 
-	// Shuts down the state machine, after which Initialize() must be called to use the state machie again.
+	// Shuts down the state machine, after which Initialize() must be called to use the state machine again.
 	// If stop is true, invokes Stop(). Destructor calls Shutdown(false).
 	void Shutdown(hsm_bool stop = hsm_true);
 
 	// Returns true after Initialize and before Shutdown are invoked
-	hsm_bool IsInitialized() const
-	{
-		return !mInitialTransition.IsNo();
-	}
+	hsm_bool IsInitialized() const { return !mInitialTransition.IsNo(); }
 
 	// Pops all states off the state stack, including initial state, invoking OnExit on each one in inner-to-outer order.
 	// A subsequent call to ProcessStateTransitions will re-populate the state stack.
@@ -67,10 +64,7 @@ public:
 	void Stop();
 
 	// Started means the state stack is not empty
-	hsm_bool IsStarted()
-	{
-		return !mStateStack.empty();
-	}
+	hsm_bool IsStarted() { return !mStateStack.empty(); }
 
 	// Debug
 	void SetDebugInfo(const hsm_char* debugName, size_t debugLevel);
@@ -81,6 +75,10 @@ public:
 	// Call to update the state stack (usually once per frame). This function will iterate over the state stack,
 	// calling GetTransition() on each state, and will perform transitions until all states return NoTransition.
 	void ProcessStateTransitions();
+
+	// Call after ProcessStateTransitions (once the state stack has settled) to allow each state to perform its
+	// work. Will invoke Update() on each state, from outermost to innermost.
+	void UpdateStates(HSM_STATE_UPDATE_ARGS);
 
 	// Owner accessors
 	Owner* GetOwner() { return mOwner; }
