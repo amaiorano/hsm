@@ -176,3 +176,5 @@ FakesAssemblies/
 
 #Workspace Whiz
 *.wwdb
+
+*.exe
