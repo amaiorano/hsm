@@ -16,6 +16,7 @@
 #include <string>
 #include <cassert>
 #include <cstdio>
+#include <cstring>
 
 #if _DEBUG
 #define HSM_DEBUG
@@ -44,7 +45,13 @@ typedef char hsm_char;
 #define HSM_TEXT(x) x
 #define HSM_PRINTF ::printf
 #define STRCMP ::strcmp
+
+#ifdef _MSC_VER
 #define SNPRINTF ::_snprintf
+#else
+#define SNPRINTF ::snprintf
+#endif
+
 #define STRNCPY ::strncpy
 #define VSNPRINTF ::vsnprintf
 
