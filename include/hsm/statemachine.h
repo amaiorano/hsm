@@ -2,9 +2,9 @@
 //
 // Copyright (c) 2013 Antonio Maiorano
 //
-// Distributed under the Boost Software License, Version 1.0. (See
-// accompanying file LICENSE_1_0.txt or copy at
-// http://www.boost.org/LICENSE_1_0.txt)
+// Distributed under the MIT License (MIT)
+// (See accompanying file LICENSE.txt or copy at
+// http://opensource.org/licenses/MIT)
 
 /// \file statemachine.h
 /// \brief StateMachine interface and main library include file.
