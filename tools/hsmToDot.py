@@ -1,5 +1,4 @@
-# Author: 		Frederic Hamel (fhamel@gmail.com)
-# Description: 	Parses cpp file(s) containing an HSM and outputs dot format text that can be used to render it.
+# Author: Frederic Hamel (fhamel@gmail.com)
 
 import os
 import sys
@@ -8,7 +7,9 @@ import pprint
 
 def PrintUsage():
     print """
-{} <filespec>
+Parses cpp file(s) containing an HSM and outputs dot format text that can be used to render it.
+	
+Usage: {} <filespec>
     """.format(os.path.basename(sys.argv[0]))
 
 STRIP_COMMENTS_RE = re.compile("(.*?)//(.*)", re.IGNORECASE)
