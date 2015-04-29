@@ -8,8 +8,8 @@ import pprint
 
 def PrintUsage():
     print """
-plotHSM.py <filespec>
-    """
+{} <filespec>
+    """.format(os.path.basename(sys.argv[0]))
 
 STRIP_COMMENTS_RE = re.compile("(.*?)//(.*)", re.IGNORECASE)
 NEW_STATE_RE = re.compile("struct\s+(\w+)\s*:\s*(?:public)?\s*(\w+)", re.IGNORECASE)
@@ -436,7 +436,7 @@ class Hsm:
             s += str(state) + "\n"
         return s
             
-def parseHsm(filespec, hsm):
+def ParseHsm(filespec, hsm):
     curState = None
     file = open(filespec)
     for fullLine in file.readlines():
@@ -582,7 +582,7 @@ def BuildClusterMap(hsm):
         clusterMap[stateCluster].States.append(state)
     return clusterMap
 
-def plotHSM(hsm):
+def PrintDotFile(hsm):
     print("digraph G {")
     print("rankdir=LR;")
 
@@ -644,9 +644,10 @@ def main(argv = None):
     
     hsm = Hsm()
     for file in argv[1:]:
-        parseHsm(file, hsm)
+        ParseHsm(file, hsm)
     hsm.Finalize()
-    plotHSM(hsm)
+
+    PrintDotFile(hsm)
 
 if __name__ == "__main__":
     sys.exit(main())
