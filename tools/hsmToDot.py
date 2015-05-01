@@ -479,7 +479,7 @@ def ParseHsm(filespec, hsm):
 
 def GetLabelForState(state):
 	return "%s (%d)" % (state.Name, state.Rank)
-	return state.Name
+	#return state.Name
 	#return "%s (%d)" % (state.Name, state.IsReusable)
 	#return ("%s (:%s) (C:%s) (%d)" % (state.Name, state.BaseName, state.Cluster, state.Rank))
 	#return ("%s (C:%s)" % (state.Name, " ".join(state.Clusters)))
@@ -594,41 +594,46 @@ def PrintDotFile(hsm):
 		for subCluster in clusterMap[clusterName].SubClusters:
 			Info("Subcluster of %s: %s" % (clusterName, subCluster))
 			InfoCluster(hsm, clusterMap, subCluster)
-	#InfoCluster(hsm, clusterMap, "")
 	
 	def PrintCluster(hsm, clusterMap, clusterName, depth = 0):
 		indent = Indent(depth)
 		element = clusterMap[clusterName]
 		
 		if clusterName != "":
-			print("%ssubgraph cluster_%s\n" % (indent, clusterName))
-			print("%s{\n" % indent)
-			print("%s  label=\"%s\";\n" % (indent, clusterName))
+			print("%ssubgraph cluster_%s" % (indent, clusterName))
+			print("%s{" % indent)
+			print("%s  label=\"%s\";" % (indent, clusterName))
+			print("%s  labeljust=left;" % (indent))
+
 		for subCluster in element.SubClusters:
 			PrintCluster(hsm, clusterMap, subCluster, depth + 1)
+
 		clusterStates = element.States
 		for rank in range(hsm.GetMaxRank() + 1):
 			rankStatesInCluster = [x for x in clusterStates if x.Rank == rank]
 			if len(rankStatesInCluster) > 0:
-				print("%s  {\n%s  rank = same;" % (indent, indent))
+				print("%s  {\n%s    rank = same;" % (indent, indent))
 				for state in rankStatesInCluster:
 					if state.IsVisible() and ShouldPrintState(state):
-						print("%s	%s [%s];" % (indent, state.Name, GetAttributesForState(state)))
+						print("%s    %s [%s];" % (indent, state.Name, GetAttributesForState(state)))
 				print("%s  }" % indent)
+				
 		if clusterName != "":
-			print("%s}\n" % indent)
+			print("%s}" % indent)
 		
 	PrintCluster(hsm, clusterMap, "")
 
+	print
+	
 	for state in hsm.States():
 		for transition in state.Transitions():
 			if ShouldPrintTransition(state, transition.TargetState):
 				attributes = GetAttributesForTransition(transition)
-				print("%s -> %s %s;" % (state.Name, hsm.GetStateByNameOrAlias(transition.TargetStateName).Name, attributes))
+				print("  %s -> %s %s;" % (state.Name, hsm.GetStateByNameOrAlias(transition.TargetStateName).Name, attributes))
 		for child in state.Children:
 			if ShouldPrintTransition(state, child):
 				attributes = GetAttributesForChildPositioningEdge(transition)
-				print("%s -> %s %s;" % (state.Name, hsm.GetStateByNameOrAlias(child.Name).Name, attributes))
+				print("  %s -> %s %s;" % (state.Name, hsm.GetStateByNameOrAlias(child.Name).Name, attributes))
 
 	print ("}")
 
