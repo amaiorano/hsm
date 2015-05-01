@@ -4,6 +4,7 @@ import os
 import sys
 import re
 import pprint
+import binascii
 
 def PrintUsage():
 	print """
@@ -12,6 +13,10 @@ Parses cpp file(s) containing an HSM and outputs dot format text that can be use
 Usage: {} <filespec>
 	""".format(os.path.basename(sys.argv[0]))
 
+DOT_LEFT_RIGHT = False
+DOT_USE_COLOR = True
+DOT_FONT = "Helvetica"
+	
 STRIP_COMMENTS_RE = re.compile("(.*?)//(.*)", re.IGNORECASE)
 NEW_STATE_RE = re.compile("struct\s+(\w+)\s*:\s*(?:public)?\s*(\w+)", re.IGNORECASE)
 INNER_TRANSITION_RE = re.compile("InnerTransition\s*<\s*([^\s]*?)\s*>\s*\(", re.IGNORECASE)
@@ -484,13 +489,33 @@ def GetLabelForState(state):
 	#return ("%s (:%s) (C:%s) (%d)" % (state.Name, state.BaseName, state.Cluster, state.Rank))
 	#return ("%s (C:%s)" % (state.Name, " ".join(state.Clusters)))
 	
-def GetAttributesForState(state):
+def GetAttributesForState(hsm, state):
 	label = GetLabelForState(state)
 	if REPLACE_UNDERSCORES_WITH_DASHES:
 		label = label.replace("_", "-")
 	result = "label=\"%s\"" % label
 	if state.IsProxy:
 		result = result + ",shape=parallelogram"
+
+	if DOT_USE_COLOR:
+		# We select a unique hue per cluster
+		clusterHash = binascii.crc32("".join(state.Clusters)) & 0xffffffff
+		H = float((clusterHash + sys.maxint/4) % sys.maxint) / sys.maxint
+
+		S = 0.5
+
+		# For the value (brightness), scale by rank so nodes of higher rank are brighter.
+		#@TODO: Compute as ratio of state rank to cluster min/max rank so that we get the full
+		#       range of brightness within a cluster.
+		rankRatio = float(state.Rank) / hsm.GetMaxRank()
+		minV = 0.3
+		maxV = 0.85
+		V = minV + rankRatio * (maxV - minV)
+
+		result += ',style=filled, color="{} {} {}"'.format(H, S, V)
+		result += ',fontcolor=white'
+
+	result += ',fontname=%s' % (DOT_FONT)
 	return result
 
 def GetAttributesForTransition(transition):
@@ -585,7 +610,10 @@ def BuildClusterMap(hsm):
 
 def PrintDotFile(hsm):
 	print("digraph G {")
-	print("rankdir=LR;")
+	if DOT_LEFT_RIGHT:
+		print("  rankdir=LR;")
+	print("  nodesep=0.4;")
+	print("  fontname=%s;" % (DOT_FONT))
 
 	clusterMap = BuildClusterMap(hsm)
 
@@ -615,7 +643,7 @@ def PrintDotFile(hsm):
 				print("%s  {\n%s    rank = same;" % (indent, indent))
 				for state in rankStatesInCluster:
 					if state.IsVisible() and ShouldPrintState(state):
-						print("%s    %s [%s];" % (indent, state.Name, GetAttributesForState(state)))
+						print("%s    %s [%s];" % (indent, state.Name, GetAttributesForState(hsm, state)))
 				print("%s  }" % indent)
 				
 		if clusterName != "":
