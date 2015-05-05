@@ -112,9 +112,15 @@ void StateMachine::ProcessStateTransitions()
 	// After we make a transition, we must process all transitions again until we get no transitions
 	// from all states on the stack.
 	hsm_bool keepProcessing = hsm_true;
+	int numTransitionsProcessed = 0;
 	while (keepProcessing)
 	{
 		keepProcessing = ProcessStateTransitionsOnce();
+
+		if (++numTransitionsProcessed >= 1000)
+		{
+			HSM_ASSERT_MSG(hsm_false, "ProcessStateTransitions: detected infinite transition loop");
+		}
 	}
 }
 
