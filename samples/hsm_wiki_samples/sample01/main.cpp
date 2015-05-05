@@ -1,4 +1,4 @@
-#define ENABLED_SECTION 4
+#define ENABLED_SECTION 5
 
 #if ENABLED_SECTION == 1
 
@@ -95,7 +95,7 @@ struct MyStates
 int main()
 {
 	StateMachine stateMachine;
-	stateMachine.Initialize<States::First>();
+	stateMachine.Initialize<MyStates::First>();
 	stateMachine.SetDebugInfo("TestHsm", 1);
 	stateMachine.ProcessStateTransitions();
 }
@@ -167,8 +167,72 @@ struct MyStates
 int main()
 {
 	StateMachine stateMachine;
-	stateMachine.Initialize<States::First>();
+	stateMachine.Initialize<MyStates::First>();
 	stateMachine.SetDebugInfo("TestHsm", 1);
+	stateMachine.ProcessStateTransitions();
+}
+
+#elif ENABLED_SECTION == 5
+
+// main.cpp
+#include <cstdio>
+#include "hsm/statemachine.h"
+using namespace hsm;
+
+bool gStartOver = false;
+
+struct MyStates
+{
+	struct First : State
+	{
+		virtual void OnEnter()
+		{
+			gStartOver = false;
+		}
+
+		virtual Transition GetTransition()
+		{
+			return SiblingTransition<Second>();
+		}
+	};
+
+	struct Second : State
+	{
+		virtual Transition GetTransition()
+		{
+			return SiblingTransition<Third>();
+		}
+	};
+
+	struct Third : State
+	{
+		virtual Transition GetTransition()
+		{
+			if (gStartOver)
+				return SiblingTransition<First>();
+
+			return NoTransition();
+		}
+	};
+};
+
+int main()
+{
+	StateMachine stateMachine;
+	stateMachine.Initialize<MyStates::First>();
+	stateMachine.SetDebugInfo("TestHsm", 1);
+	
+	printf(">>> First ProcessStateTransitions\n");
+	stateMachine.ProcessStateTransitions();
+
+	printf(">>> Second ProcessStateTransitions\n");
+	stateMachine.ProcessStateTransitions();
+
+	gStartOver = true;
+	printf(">>> Third ProcessStateTransitions\n");
+	stateMachine.ProcessStateTransitions();
+
+	printf(">>> Fourth ProcessStateTransitions\n");
 	stateMachine.ProcessStateTransitions();
 }
 
