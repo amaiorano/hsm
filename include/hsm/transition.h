@@ -88,10 +88,11 @@ private:
 	{
 		static void Execute(State* state, const StateArgs* stateArgs)
 		{
-			 HSM_ASSERT_MSG(stateArgs == 0, "Target state does not expect args, yet args were passed in via the transition");
+			(void)stateArgs;
+			HSM_ASSERT_MSG(stateArgs == 0, "Target state does not expect args, yet args were passed in via the transition");
 
-			 //@NOTE: Compiler will fail here if TargetState defines OnEnter(const Args&)
-			 static_cast<TargetState*>(state)->OnEnter();
+			//@NOTE: Compiler will fail here if TargetState defines OnEnter(const Args&)
+			static_cast<TargetState*>(state)->OnEnter();
 		}
 	};
 
