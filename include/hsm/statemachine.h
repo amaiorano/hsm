@@ -31,9 +31,9 @@ public:
 	StateMachine();
 	~StateMachine();
 
-	// Initializes the state machine
+	//@DEPRECATED: Initialize should no longer accept debug info. Use SetDebugInfo instead.
 	template <typename InitialStateType>
-	void Initialize(Owner* owner = 0, const hsm_char* debugName = HSM_TEXT("Unnamed"), size_t debugLevel = 0)
+	void Initialize(Owner* owner, const hsm_char* debugName, size_t debugLevel)
 	{
 		HSM_ASSERT(mInitialTransition.IsNo());
 		mInitialTransition = SiblingTransition(GetStateFactory<InitialStateType>());
@@ -41,15 +41,27 @@ public:
 		SetDebugInfo(debugName, debugLevel);
 	}
 
-	// Overload that takes StateArgs for the initial state
-	template <typename InitialStateType, typename StateArgsType>
-	void Initialize(const StateArgsType& initialStateArgs, Owner* owner = 0, const hsm_char* debugName = HSM_TEXT("Unnamed"), size_t debugLevel = 0)
+	// Initializes the state machine
+	template <typename InitialStateType>
+	void Initialize(Owner* owner = 0)
 	{
 		HSM_ASSERT(mInitialTransition.IsNo());
-		mInitialTransition = SiblingTransition(GetStateFactory<InitialStateType>(), initialStateArgs);
+		mInitialTransition = SiblingTransition(GetStateFactory<InitialStateType>());
 		mOwner = owner;
-		SetDebugInfo(debugName, debugLevel);
 	}
+
+	//@NOTE: Removing this overload as it causes ambiguity when owner is not specified.
+	// Can make this work using SFINAE to enable this overload when StateArgsType derives
+	// from hsm::StateArgs. This would be simpler in C++11.
+	//
+	// Initializes the state machie with StateArgs for the initial state.
+	//template <typename InitialStateType, typename StateArgsType>
+	//void Initialize(const StateArgsType& initialStateArgs, Owner* owner = 0)
+	//{
+	//	HSM_ASSERT(mInitialTransition.IsNo());
+	//	mInitialTransition = SiblingTransition(GetStateFactory<InitialStateType>(), initialStateArgs);
+	//	mOwner = owner;
+	//}
 
 	// Shuts down the state machine, after which Initialize() must be called to use the state machine again.
 	// If stop is true, invokes Stop(). Destructor calls Shutdown(false).
