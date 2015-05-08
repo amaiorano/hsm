@@ -13,13 +13,36 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="hsm">
+      <UniqueIdentifier>{b2aaa46c-5392-4278-ab2b-5c2b0a536f17}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\statemachine.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>hsm</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\include\hsm\config.h">
+      <Filter>hsm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\hsm\rtti.h">
+      <Filter>hsm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\hsm\state.h">
+      <Filter>hsm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\hsm\statemachine.h">
+      <Filter>hsm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\hsm\transition.h">
+      <Filter>hsm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\hsm\utils.h">
+      <Filter>hsm</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
