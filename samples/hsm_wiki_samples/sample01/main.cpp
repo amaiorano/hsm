@@ -1,4 +1,4 @@
-#define ENABLED_SECTION 6
+#define ENABLED_SECTION 9
 
 #if ENABLED_SECTION == 1
 
@@ -312,6 +312,333 @@ int main()
 
 	stateMachine.ProcessStateTransitions();
 	stateMachine.UpdateStates();
+}
+
+#elif ENABLED_SECTION == 7
+
+/// Ownership.BasicUsage
+
+// main.cpp
+#include <cstdio>
+#include "hsm/statemachine.h"
+using namespace hsm;
+
+class MyOwner
+{
+public:
+	MyOwner();
+	void UpdateStateMachine();
+	void PlaySequence();
+	bool GetPlaySequence() const;
+
+private:
+	StateMachine mStateMachine;
+	bool mPlaySequence;
+};
+
+struct MyStates
+{
+	struct First : State
+	{
+		virtual Transition GetTransition()
+		{
+			MyOwner* owner = reinterpret_cast<MyOwner*>(GetStateMachine().GetOwner());
+
+			if (owner->GetPlaySequence())
+				return SiblingTransition<Second>();
+
+			return NoTransition();
+		}
+
+		virtual void Update()
+		{
+			printf("First::Update\n");
+		}
+	};
+
+	struct Second : State
+	{
+		virtual Transition GetTransition()
+		{
+			MyOwner* owner = reinterpret_cast<MyOwner*>(GetStateMachine().GetOwner());
+
+			if (owner->GetPlaySequence())
+				return SiblingTransition<Third>();
+
+			return NoTransition();
+		}
+
+		virtual void Update()
+		{
+			printf("Second::Update\n");
+		}
+	};
+
+	struct Third : State
+	{
+		virtual Transition GetTransition()
+		{
+			return NoTransition();
+		}
+
+		virtual void Update()
+		{
+			printf("Third::Update\n");
+		}
+	};
+};
+
+MyOwner::MyOwner()
+{
+	mPlaySequence = false;
+	mStateMachine.Initialize<MyStates::First>(this); //*** Note that we pass 'this' as our owner
+	mStateMachine.SetDebugInfo("TestHsm", 1);
+}
+
+void MyOwner::UpdateStateMachine()
+{
+	mStateMachine.ProcessStateTransitions();
+	mStateMachine.UpdateStates();
+}
+
+void MyOwner::PlaySequence()
+{
+	mPlaySequence = true;
+}
+
+bool MyOwner::GetPlaySequence() const
+{
+	return mPlaySequence;
+}
+
+int main()
+{
+	MyOwner myOwner;
+
+	myOwner.UpdateStateMachine();
+	myOwner.UpdateStateMachine();
+
+	myOwner.PlaySequence();
+
+	myOwner.UpdateStateMachine();
+	myOwner.UpdateStateMachine();
+}
+
+#elif ENABLED_SECTION == 8
+
+/// Ownership.EasierOwnerAccess
+
+// main.cpp
+#include <cstdio>
+#include "hsm/statemachine.h"
+using namespace hsm;
+
+class MyOwner
+{
+public:
+	MyOwner();
+	void UpdateStateMachine();
+	void PlaySequence();
+	bool GetPlaySequence() const;
+
+private:
+	StateMachine mStateMachine;
+	bool mPlaySequence;
+};
+
+struct MyStates
+{
+	struct BaseState : StateWithOwner<MyOwner>
+	{
+	};
+
+	struct First : BaseState
+	{
+		virtual Transition GetTransition()
+		{
+			if (Owner().GetPlaySequence())
+				return SiblingTransition<Second>();
+
+			return NoTransition();
+		}
+
+		virtual void Update()
+		{
+			printf("First::Update\n");
+		}
+	};
+
+	struct Second : BaseState
+	{
+		virtual Transition GetTransition()
+		{
+			if (Owner().GetPlaySequence())
+				return SiblingTransition<Third>();
+
+			return NoTransition();
+		}
+
+		virtual void Update()
+		{
+			printf("Second::Update\n");
+		}
+	};
+
+	struct Third : BaseState
+	{
+		virtual Transition GetTransition()
+		{
+			return NoTransition();
+		}
+
+		virtual void Update()
+		{
+			printf("Third::Update\n");
+		}
+	};
+};
+
+MyOwner::MyOwner()
+{
+	mPlaySequence = false;
+	mStateMachine.Initialize<MyStates::First>(this);
+	mStateMachine.SetDebugInfo("TestHsm", 1);
+}
+
+void MyOwner::UpdateStateMachine()
+{
+	mStateMachine.ProcessStateTransitions();
+	mStateMachine.UpdateStates();
+}
+
+void MyOwner::PlaySequence()
+{
+	mPlaySequence = true;
+}
+
+bool MyOwner::GetPlaySequence() const
+{
+	return mPlaySequence;
+}
+
+int main()
+{
+	MyOwner myOwner;
+
+	myOwner.UpdateStateMachine();
+	myOwner.UpdateStateMachine();
+
+	myOwner.PlaySequence();
+
+	myOwner.UpdateStateMachine();
+	myOwner.UpdateStateMachine();
+}
+
+#elif ENABLED_SECTION == 9
+
+/// Ownership.AccessingOwnersPrivateMembers
+
+// main.cpp
+#include <cstdio>
+#include "hsm/statemachine.h"
+using namespace hsm;
+
+class MyOwner
+{
+public:
+	MyOwner();
+	void UpdateStateMachine();
+
+	void PlaySequence();
+
+private:
+	friend struct MyStates; //*** All states can access MyOwner's private members
+
+	StateMachine mStateMachine;
+	bool mPlaySequence;
+};
+
+struct MyStates
+{
+	struct BaseState : StateWithOwner<MyOwner>
+	{
+	};
+
+	struct First : BaseState
+	{
+		virtual Transition GetTransition()
+		{
+			if (Owner().mPlaySequence) //*** Access one of owner's private members
+				return SiblingTransition<Second>();
+
+			return NoTransition();
+		}
+
+		virtual void Update()
+		{
+			printf("First::Update\n");
+		}
+	};
+
+	struct Second : BaseState
+	{
+		virtual Transition GetTransition()
+		{
+			if (Owner().mPlaySequence) //*** Access one of owner's private members
+				return SiblingTransition<Third>();
+
+			return NoTransition();
+		}
+
+		virtual void Update()
+		{
+			printf("Second::Update\n");
+		}
+	};
+
+	struct Third : BaseState
+	{
+		virtual Transition GetTransition()
+		{
+			return NoTransition();
+		}
+
+		virtual void Update()
+		{
+			printf("Third::Update\n");
+		}
+	};
+};
+
+MyOwner::MyOwner()
+{
+	mPlaySequence = false;
+	mStateMachine.Initialize<MyStates::First>(this);
+	mStateMachine.SetDebugInfo("TestHsm", 1);
+}
+
+void MyOwner::UpdateStateMachine()
+{
+	mStateMachine.ProcessStateTransitions();
+	mStateMachine.UpdateStates();
+}
+
+void MyOwner::PlaySequence()
+{
+	mPlaySequence = true;
+}
+
+int main()
+{
+	MyOwner myOwner;
+
+	myOwner.UpdateStateMachine();
+	myOwner.UpdateStateMachine();
+
+	myOwner.PlaySequence();
+
+	myOwner.UpdateStateMachine();
+	myOwner.UpdateStateMachine();
 }
 
 #endif
