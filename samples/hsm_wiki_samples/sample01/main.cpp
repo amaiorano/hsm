@@ -53,7 +53,7 @@ int main()
 {
 	StateMachine stateMachine;
 	stateMachine.Initialize<First>();
-	stateMachine.SetDebugInfo("TestHsm", 1);
+	stateMachine.SetDebugInfo("TestHsm", TraceLevel::Basic);
 	stateMachine.ProcessStateTransitions();
 }
 
@@ -96,7 +96,7 @@ int main()
 {
 	StateMachine stateMachine;
 	stateMachine.Initialize<MyStates::First>();
-	stateMachine.SetDebugInfo("TestHsm", 1);
+	stateMachine.SetDebugInfo("TestHsm", TraceLevel::Basic);
 	stateMachine.ProcessStateTransitions();
 }
 
@@ -168,7 +168,7 @@ int main()
 {
 	StateMachine stateMachine;
 	stateMachine.Initialize<MyStates::First>();
-	stateMachine.SetDebugInfo("TestHsm", 1);
+	stateMachine.SetDebugInfo("TestHsm", TraceLevel::Basic);
 	stateMachine.ProcessStateTransitions();
 }
 
@@ -220,7 +220,7 @@ int main()
 {
 	StateMachine stateMachine;
 	stateMachine.Initialize<MyStates::First>();
-	stateMachine.SetDebugInfo("TestHsm", 1);
+	stateMachine.SetDebugInfo("TestHsm", TraceLevel::Basic);
 	
 	printf(">>> First ProcessStateTransitions\n");
 	stateMachine.ProcessStateTransitions();
@@ -297,7 +297,7 @@ int main()
 {
 	StateMachine stateMachine;
 	stateMachine.Initialize<MyStates::First>();
-	stateMachine.SetDebugInfo("TestHsm", 1);
+	stateMachine.SetDebugInfo("TestHsm", TraceLevel::Basic);
 
 	stateMachine.ProcessStateTransitions();
 	stateMachine.UpdateStates();
@@ -392,7 +392,7 @@ MyOwner::MyOwner()
 {
 	mPlaySequence = false;
 	mStateMachine.Initialize<MyStates::First>(this); //*** Note that we pass 'this' as our owner
-	mStateMachine.SetDebugInfo("TestHsm", 1);
+	mStateMachine.SetDebugInfo("TestHsm", TraceLevel::Basic);
 }
 
 void MyOwner::UpdateStateMachine()
@@ -502,7 +502,7 @@ MyOwner::MyOwner()
 {
 	mPlaySequence = false;
 	mStateMachine.Initialize<MyStates::First>(this);
-	mStateMachine.SetDebugInfo("TestHsm", 1);
+	mStateMachine.SetDebugInfo("TestHsm", TraceLevel::Basic);
 }
 
 void MyOwner::UpdateStateMachine()
@@ -614,7 +614,7 @@ MyOwner::MyOwner()
 {
 	mPlaySequence = false;
 	mStateMachine.Initialize<MyStates::First>(this);
-	mStateMachine.SetDebugInfo("TestHsm", 1);
+	mStateMachine.SetDebugInfo("TestHsm", TraceLevel::Basic);
 }
 
 void MyOwner::UpdateStateMachine()
@@ -696,7 +696,7 @@ struct MyStates
 MyOwner::MyOwner()
 {
 	mStateMachine.Initialize<MyStates::First>(this);
-	mStateMachine.SetDebugInfo("TestHsm", 1);
+	mStateMachine.SetDebugInfo("TestHsm", TraceLevel::Basic);
 }
 
 void MyOwner::UpdateStateMachine()
