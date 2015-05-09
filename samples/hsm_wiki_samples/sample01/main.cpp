@@ -1,4 +1,4 @@
-#define ENABLED_SECTION 9
+#define ENABLED_SECTION 10
 
 #if ENABLED_SECTION == 1
 
@@ -638,6 +638,76 @@ int main()
 	myOwner.PlaySequence();
 
 	myOwner.UpdateStateMachine();
+	myOwner.UpdateStateMachine();
+}
+
+#elif ENABLED_SECTION == 10
+
+/// StoringData
+
+// main.cpp
+#include <cstdio>
+#include <string>
+#include "hsm/statemachine.h"
+using namespace hsm;
+
+class MyOwner
+{
+public:
+	MyOwner();
+	void UpdateStateMachine();
+
+private:
+	friend struct MyStates; //*** All states can access MyOwner's private members
+	StateMachine mStateMachine;
+};
+
+struct Foo
+{
+	Foo() { printf(">>> Foo created\n"); }
+	~Foo() { printf(">>>Foo destroyed\n"); }
+};
+
+struct MyStates
+{
+	struct BaseState : StateWithOwner<MyOwner>
+	{
+	};
+
+	struct First : BaseState
+	{
+		virtual Transition GetTransition()
+		{
+			return SiblingTransition<Second>();
+		}
+
+		Foo mFoo; //*** State data member
+	};
+
+	struct Second : BaseState
+	{
+		virtual Transition GetTransition()
+		{
+			return NoTransition();
+		}
+	};
+};
+
+MyOwner::MyOwner()
+{
+	mStateMachine.Initialize<MyStates::First>(this);
+	mStateMachine.SetDebugInfo("TestHsm", 1);
+}
+
+void MyOwner::UpdateStateMachine()
+{
+	mStateMachine.ProcessStateTransitions();
+	mStateMachine.UpdateStates();
+}
+
+int main()
+{
+	MyOwner myOwner;
 	myOwner.UpdateStateMachine();
 }
 
