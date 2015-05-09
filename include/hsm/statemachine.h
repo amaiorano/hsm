@@ -23,6 +23,16 @@ typedef HSM_STD_VECTOR<State*> StackType;
 typedef StackType::iterator OuterToInnerIterator;
 typedef StackType::reverse_iterator InnerToOuterIterator;
 
+namespace TraceLevel
+{
+	enum Type
+	{
+		None = 0,
+		Basic = 1,
+		Diagnostic = 2
+	};
+};
+
 // The main interface to the hierarchical state machine; a single state machine
 // manages a stack of states.
 class StateMachine
@@ -30,16 +40,6 @@ class StateMachine
 public:
 	StateMachine();
 	~StateMachine();
-
-	//@DEPRECATED: Initialize should no longer accept debug info. Use SetDebugInfo instead.
-	template <typename InitialStateType>
-	void Initialize(Owner* owner, const hsm_char* debugName, size_t debugLevel)
-	{
-		HSM_ASSERT(mInitialTransition.IsNo());
-		mInitialTransition = SiblingTransition(GetStateFactory<InitialStateType>());
-		mOwner = owner;
-		SetDebugInfo(debugName, debugLevel);
-	}
 
 	// Initializes the state machine
 	template <typename InitialStateType>
@@ -78,11 +78,12 @@ public:
 	// Started means the state stack is not empty
 	hsm_bool IsStarted() { return !mStateStack.empty(); }
 
-	// Debug
-	void SetDebugInfo(const hsm_char* debugName, size_t debugLevel);
-	const hsm_char* GetDebugName() const { return mDebugName; }
-	void SetDebugLevel(size_t debugLevel) { mDebugLevel = debugLevel; }
-	size_t GetDebugLevel() { return mDebugLevel; }
+	// Debug tracing
+	void SetDebugInfo(const hsm_char* name, TraceLevel::Type traceLevel);
+	void SetDebugName(const hsm_char* name);
+	const hsm_char* GetDebugName() const { return mDebugName; }	
+	void SetDebugTraceLevel(TraceLevel::Type trace) { mDebugTraceLevel = trace; }
+	TraceLevel::Type GetDebugTraceLevel() const { return mDebugTraceLevel; }
 
 	// Call to update the state stack (usually once per frame). This function will iterate over the state stack,
 	// calling GetTransition() on each state, and will perform transitions until all states return NoTransition.
@@ -116,6 +117,26 @@ public:
 	template <typename StateType>
 	hsm_bool IsInState() const { return IsInState(hsm::GetStateType<StateType>()); }
 
+
+	//@DEPRECATED: Initialize should no longer accept debug info. Use SetDebugInfo instead.
+	template <typename InitialStateType>
+	void Initialize(Owner* owner, const hsm_char* debugName, size_t debugLevel)
+	{
+		HSM_ASSERT(mInitialTransition.IsNo());
+		mInitialTransition = SiblingTransition(GetStateFactory<InitialStateType>());
+		mOwner = owner;
+		SetDebugInfo(debugName, debugLevel);
+	}
+
+	//@DEPRECATED: Use SetDebugInfo(const hsm_char*, TraceLevel::Type)
+	void SetDebugInfo(const hsm_char* name, size_t level) { SetDebugName(name); SetDebugLevel(level); }
+	
+	//@DEPRECATED: Use SetDebugTraceLevel
+	void SetDebugLevel(size_t level) { SetDebugTraceLevel(static_cast<TraceLevel::Type>(level)); }
+	
+	//@DEPRECATED: Use GetDebugTraceLevel
+	size_t GetDebugLevel() { return static_cast<size_t>(GetDebugTraceLevel()); }
+
 private:
 	friend struct State;
 
@@ -144,8 +165,9 @@ private:
 	Owner* mOwner; // Provided by client, accessed within states via StateWithOwner<>::Owner()
 	Transition mInitialTransition;
 	StackType mStateStack;
-	size_t mDebugLevel;
+	
 	hsm_char mDebugName[HSM_DEBUG_NAME_MAXLEN];
+	TraceLevel::Type mDebugTraceLevel;
 };
 
 

@@ -64,7 +64,7 @@ namespace detail
 
 StateMachine::StateMachine()
 	: mOwner(0)
-	, mDebugLevel(0)
+	, mDebugTraceLevel(TraceLevel::None)
 {
 }
 
@@ -83,8 +83,6 @@ void StateMachine::Shutdown(hsm_bool stop)
 
 	mOwner = 0;
 	mInitialTransition = NoTransition();
-	mDebugLevel = 0;
-	mDebugName[0] = '\0';
 }
 
 void StateMachine::Stop()
@@ -93,11 +91,16 @@ void StateMachine::Stop()
 	HSM_ASSERT(mStateStack.empty());
 }
 
-void StateMachine::SetDebugInfo(const hsm_char* debugName, size_t debugLevel)
+void StateMachine::SetDebugInfo(const hsm_char* name, TraceLevel::Type traceLevel)
 {
-	STRNCPY(mDebugName, debugName, HSM_DEBUG_NAME_MAXLEN);
+	SetDebugName(name);
+	SetDebugTraceLevel(traceLevel);
+}
+
+void StateMachine::SetDebugName(const hsm_char* name)
+{
+	STRNCPY(mDebugName, name, HSM_DEBUG_NAME_MAXLEN);
 	mDebugName[HSM_DEBUG_NAME_MAXLEN - 1] = '\0';
-	SetDebugLevel(debugLevel);
 }
 
 void StateMachine::ProcessStateTransitions()
@@ -317,7 +320,7 @@ void StateMachine::PopState()
 
 void StateMachine::Log(size_t minLevel, size_t numSpaces, const hsm_char* format, ...)
 {
-	if (mDebugLevel >= minLevel)
+	if (static_cast<size_t>(mDebugTraceLevel) >= minLevel)
 	{
 		static hsm_char buffer[4096];
 		int offset = SNPRINTF(buffer, sizeof(buffer), HSM_TEXT("HSM_%d_%s:%*s "), minLevel, mDebugName, numSpaces, "");
