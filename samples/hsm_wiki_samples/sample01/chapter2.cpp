@@ -1,313 +1,328 @@
-#define ENABLED_SECTION 3
+#define ENABLED_SECTION 0
 
 #if ENABLED_SECTION == 1
 
-// drawing_hsms.cpp
+// simplest_state_machine.cpp
 
 #include "hsm/statemachine.h"
 
-using namespace hsm;
-
-class MyOwner
+struct First : hsm::State
 {
-public:
-	MyOwner();
-	void UpdateStateMachine();
-
-private:
-	bool IsDead() const { return false; }
-	bool PressedJump() const { return false; }
-	bool PressedShoot() const { return false; }
-	bool PressedMove() const { return false; }
-	bool PressedCrouch() const { return false; }
-
-	friend struct MyStates;
-	StateMachine mStateMachine;
 };
-
-struct MyStates
-{
-	struct BaseState : StateWithOwner<MyOwner>
-	{
-	};
-
-	struct Alive : BaseState
-	{
-		virtual Transition GetTransition()
-		{
-			if (Owner().IsDead())
-				return SiblingTransition<Dead>();
-			
-			return InnerEntryTransition<Locomotion>();
-		}
-	};
-
-	struct Dead : BaseState
-	{
-		virtual Transition GetTransition()
-		{
-			return NoTransition();
-		}
-	};
-
-	struct Locomotion : BaseState
-	{
-		virtual Transition GetTransition()
-		{
-			if (Owner().PressedJump())
-				return SiblingTransition<Jump>();
-			
-			if (Owner().PressedShoot())
-				return SiblingTransition<Shoot>();
-
-			return InnerEntryTransition<Stand>();
-		}
-	};
-
-	struct Jump : BaseState
-	{
-		bool FinishedJumping() const { return false; }
-
-		virtual Transition GetTransition()
-		{
-			if (FinishedJumping())
-				return SiblingTransition<Locomotion>();
-			
-			return NoTransition();
-		}
-	};
-
-	struct Shoot : BaseState
-	{
-		bool FinishedShooting() const { return false; }
-
-		virtual Transition GetTransition()
-		{
-			if (FinishedShooting())
-				return SiblingTransition<Locomotion>();
-
-			return NoTransition();
-		}
-	};
-
-	struct Stand : BaseState
-	{
-		virtual Transition GetTransition()
-		{
-			if (Owner().PressedMove())
-				return SiblingTransition<Move>();
-
-			if (Owner().PressedCrouch())
-				return SiblingTransition<Crouch>();
-
-			return NoTransition();
-		}
-	};
-
-	struct Move : BaseState
-	{
-		virtual Transition GetTransition()
-		{
-			if (!Owner().PressedMove())
-				return SiblingTransition<Stand>();
-
-			if (Owner().PressedCrouch())
-				return SiblingTransition<Crouch>();
-
-			return NoTransition();
-		}
-	};
-
-	struct Crouch : BaseState
-	{
-		virtual Transition GetTransition()
-		{
-			if (Owner().PressedMove())
-				return SiblingTransition<Move>();
-
-			if (Owner().PressedCrouch())
-				return SiblingTransition<Stand>();
-
-			return NoTransition();
-		}
-	};
-};
-
-MyOwner::MyOwner()
-{
-	mStateMachine.Initialize<MyStates::Alive>(this);
-	mStateMachine.SetDebugInfo("TestHsm", TraceLevel::Basic);
-}
-
-void MyOwner::UpdateStateMachine()
-{
-	mStateMachine.ProcessStateTransitions();
-	mStateMachine.UpdateStates();
-}
 
 int main()
 {
-	MyOwner myOwner;
-	myOwner.UpdateStateMachine();
+	hsm::StateMachine stateMachine;
+	stateMachine.Initialize<First>();
+	stateMachine.ProcessStateTransitions();
 }
 
 #elif ENABLED_SECTION == 2
 
-// drawing_hsms_clusters.cpp
+// states_and_transitions.cpp
 
 #include "hsm/statemachine.h"
 
 using namespace hsm;
 
-class MyOwner
+struct Third : State
 {
-public:
-	MyOwner();
-	void UpdateStateMachine();
-
-private:
-	bool IsDead() const { return false; }
-	bool PressedJump() const { return false; }
-	bool PressedShoot() const { return false; }
-	bool PressedMove() const { return false; }
-	bool PressedCrouch() const { return false; }
-
-	friend struct MyStates;
-	StateMachine mStateMachine;
+	virtual Transition GetTransition()
+	{
+		return NoTransition();
+	}
 };
 
-struct MyStates
+struct Second : State
 {
-	struct BaseState : StateWithOwner<MyOwner>
+	virtual Transition GetTransition()
 	{
-	};
-
-	struct Alive : BaseState
-	{
-		virtual Transition GetTransition()
-		{
-			if (Owner().IsDead())
-				return SiblingTransition<Dead>();
-
-			return InnerEntryTransition<Locomotion>();
-		}
-	};
-
-	struct Dead : BaseState
-	{
-		virtual Transition GetTransition()
-		{
-			return NoTransition();
-		}
-	};
-
-	struct Locomotion : BaseState
-	{
-		virtual Transition GetTransition()
-		{
-			if (Owner().PressedJump())
-				return SiblingTransition<Jump>();
-
-			if (Owner().PressedShoot())
-				return SiblingTransition<Shoot>();
-
-			return InnerEntryTransition<Locomotion_Stand>();
-		}
-	};
-
-	struct Jump : BaseState
-	{
-		bool FinishedJumping() const { return false; }
-
-		virtual Transition GetTransition()
-		{
-			if (FinishedJumping())
-				return SiblingTransition<Locomotion>();
-
-			return NoTransition();
-		}
-	};
-
-	struct Shoot : BaseState
-	{
-		bool FinishedShooting() const { return false; }
-
-		virtual Transition GetTransition()
-		{
-			if (FinishedShooting())
-				return SiblingTransition<Locomotion>();
-
-			return NoTransition();
-		}
-	};
-
-	struct Locomotion_Stand : BaseState
-	{
-		virtual Transition GetTransition()
-		{
-			if (Owner().PressedMove())
-				return SiblingTransition<Locomotion_Move>();
-
-			if (Owner().PressedCrouch())
-				return SiblingTransition<Locomotion_Crouch>();
-
-			return NoTransition();
-		}
-	};
-
-	struct Locomotion_Move : BaseState
-	{
-		virtual Transition GetTransition()
-		{
-			if (!Owner().PressedMove())
-				return SiblingTransition<Locomotion_Stand>();
-
-			if (Owner().PressedCrouch())
-				return SiblingTransition<Locomotion_Crouch>();
-
-			return NoTransition();
-		}
-	};
-
-	struct Locomotion_Crouch : BaseState
-	{
-		virtual Transition GetTransition()
-		{
-			if (Owner().PressedMove())
-				return SiblingTransition<Locomotion_Move>();
-
-			if (Owner().PressedCrouch())
-				return SiblingTransition<Locomotion_Stand>();
-
-			return NoTransition();
-		}
-	};
+		return SiblingTransition<Third>();
+	}
 };
 
-MyOwner::MyOwner()
+struct First : State
 {
-	mStateMachine.Initialize<MyStates::Alive>(this);
-	mStateMachine.SetDebugInfo("TestHsm", TraceLevel::Basic);
-}
-
-void MyOwner::UpdateStateMachine()
-{
-	mStateMachine.ProcessStateTransitions();
-	mStateMachine.UpdateStates();
-}
+	virtual Transition GetTransition()
+	{
+		return SiblingTransition<Second>();
+	}
+};
 
 int main()
 {
-	MyOwner myOwner;
-	myOwner.UpdateStateMachine();
+	StateMachine stateMachine;
+	stateMachine.Initialize<First>();
+	stateMachine.SetDebugInfo("TestHsm", TraceLevel::Basic);
+	stateMachine.ProcessStateTransitions();
 }
 
 #elif ENABLED_SECTION == 3
 
-// inner_entry_transition.cpp
+// improving_readability.cpp
 
 #include "hsm/statemachine.h"
 
+using namespace hsm;
+
+struct MyStates
+{
+	struct First : State
+	{
+		virtual Transition GetTransition()
+		{
+			return SiblingTransition<Second>();
+		}
+	};
+
+	struct Second : State
+	{
+		virtual Transition GetTransition()
+		{
+			return SiblingTransition<Third>();
+		}
+	};
+
+	struct Third : State
+	{
+		virtual Transition GetTransition()
+		{
+			return NoTransition();
+		}
+	};
+};
+
+int main()
+{
+	StateMachine stateMachine;
+	stateMachine.Initialize<MyStates::First>();
+	stateMachine.SetDebugInfo("TestHsm", TraceLevel::Basic);
+	stateMachine.ProcessStateTransitions();
+}
+
+#elif ENABLED_SECTION == 4
+
+// state_onenter_onexit.cpp
+
+#include <cstdio>
+#include "hsm/statemachine.h"
+using namespace hsm;
+
+struct MyStates
+{
+	struct First : State
+	{
+		virtual void OnEnter()
+		{
+			printf("First::OnEnter\n");
+		}
+
+		virtual void OnExit()
+		{
+			printf("First::OnExit\n");
+		}
+
+		virtual Transition GetTransition()
+		{
+			return SiblingTransition<Second>();
+		}
+	};
+
+	struct Second : State
+	{
+		virtual void OnEnter()
+		{
+			printf("Second::OnEnter\n");
+		}
+
+		virtual void OnExit()
+		{
+			printf("Second::OnExit\n");
+		}
+
+		virtual Transition GetTransition()
+		{
+			return SiblingTransition<Third>();
+		}
+	};
+
+	struct Third : State
+	{
+		virtual void OnEnter()
+		{
+			printf("Third::OnEnter\n");
+		}
+
+		virtual void OnExit()
+		{
+			printf("Third::OnExit\n");
+		}
+
+		virtual Transition GetTransition()
+		{
+			return NoTransition();
+		}
+	};
+};
+
+int main()
+{
+	StateMachine stateMachine;
+	stateMachine.Initialize<MyStates::First>();
+	stateMachine.SetDebugInfo("TestHsm", TraceLevel::Basic);
+	stateMachine.ProcessStateTransitions();
+}
+
+#elif ENABLED_SECTION == 5
+
+// process_state_transitions.cpp
+
+#include <cstdio>
+#include "hsm/statemachine.h"
+using namespace hsm;
+
+bool gStartOver = false;
+
+struct MyStates
+{
+	struct First : State
+	{
+		virtual void OnEnter()
+		{
+			gStartOver = false;
+		}
+
+		virtual Transition GetTransition()
+		{
+			return SiblingTransition<Second>();
+		}
+	};
+
+	struct Second : State
+	{
+		virtual Transition GetTransition()
+		{
+			return SiblingTransition<Third>();
+		}
+	};
+
+	struct Third : State
+	{
+		virtual Transition GetTransition()
+		{
+			if (gStartOver)
+				return SiblingTransition<First>();
+
+			return NoTransition();
+		}
+	};
+};
+
+int main()
+{
+	StateMachine stateMachine;
+	stateMachine.Initialize<MyStates::First>();
+	stateMachine.SetDebugInfo("TestHsm", TraceLevel::Basic);
+	
+	printf(">>> First ProcessStateTransitions\n");
+	stateMachine.ProcessStateTransitions();
+
+	printf(">>> Second ProcessStateTransitions\n");
+	stateMachine.ProcessStateTransitions();
+
+	gStartOver = true;
+	printf(">>> Third ProcessStateTransitions\n");
+	stateMachine.ProcessStateTransitions();
+
+	printf(">>> Fourth ProcessStateTransitions\n");
+	stateMachine.ProcessStateTransitions();
+}
+
+#elif ENABLED_SECTION == 6
+
+// update_states.cpp
+
+#include <cstdio>
+#include "hsm/statemachine.h"
+using namespace hsm;
+
+bool gPlaySequence = false;
+
+struct MyStates
+{
+	struct First : State
+	{
+		virtual Transition GetTransition()
+		{
+			if (gPlaySequence)
+				return SiblingTransition<Second>();
+			
+			return NoTransition();
+		}
+
+		virtual void Update()
+		{
+			printf("First::Update\n");
+		}
+	};
+
+	struct Second : State
+	{
+		virtual Transition GetTransition()
+		{
+			if (gPlaySequence)
+				return SiblingTransition<Third>();
+			
+			return NoTransition();
+		}
+
+		virtual void Update()
+		{
+			printf("Second::Update\n");
+		}
+	};
+
+	struct Third : State
+	{
+		virtual Transition GetTransition()
+		{
+			return NoTransition();
+		}
+
+		virtual void Update()
+		{
+			printf("Third::Update\n");
+		}
+	};
+};
+
+int main()
+{
+	StateMachine stateMachine;
+	stateMachine.Initialize<MyStates::First>();
+	stateMachine.SetDebugInfo("TestHsm", TraceLevel::Basic);
+
+	stateMachine.ProcessStateTransitions();
+	stateMachine.UpdateStates();
+
+	stateMachine.ProcessStateTransitions();
+	stateMachine.UpdateStates();
+
+	gPlaySequence = true;
+
+	stateMachine.ProcessStateTransitions();
+	stateMachine.UpdateStates();
+
+	stateMachine.ProcessStateTransitions();
+	stateMachine.UpdateStates();
+}
+
+#elif ENABLED_SECTION == 7
+
+// ownership_basic_usage.cpp
+
+#include <cstdio>
+#include "hsm/statemachine.h"
 using namespace hsm;
 
 class MyOwner
@@ -315,17 +330,121 @@ class MyOwner
 public:
 	MyOwner();
 	void UpdateStateMachine();
-
-	void Die() { mDead = true; }
+	void PlaySequence();
+	bool GetPlaySequence() const;
 
 private:
-	bool IsDead() const { return mDead; } // Stub
-	bool PressedMove() const { return false; } // Stub
-
-	bool mDead;
-
-	friend struct MyStates;
 	StateMachine mStateMachine;
+	bool mPlaySequence;
+};
+
+struct MyStates
+{
+	struct First : State
+	{
+		virtual Transition GetTransition()
+		{
+			MyOwner* owner = reinterpret_cast<MyOwner*>(GetStateMachine().GetOwner());
+
+			if (owner->GetPlaySequence())
+				return SiblingTransition<Second>();
+
+			return NoTransition();
+		}
+
+		virtual void Update()
+		{
+			printf("First::Update\n");
+		}
+	};
+
+	struct Second : State
+	{
+		virtual Transition GetTransition()
+		{
+			MyOwner* owner = reinterpret_cast<MyOwner*>(GetStateMachine().GetOwner());
+
+			if (owner->GetPlaySequence())
+				return SiblingTransition<Third>();
+
+			return NoTransition();
+		}
+
+		virtual void Update()
+		{
+			printf("Second::Update\n");
+		}
+	};
+
+	struct Third : State
+	{
+		virtual Transition GetTransition()
+		{
+			return NoTransition();
+		}
+
+		virtual void Update()
+		{
+			printf("Third::Update\n");
+		}
+	};
+};
+
+MyOwner::MyOwner()
+{
+	mPlaySequence = false;
+	mStateMachine.Initialize<MyStates::First>(this); //*** Note that we pass 'this' as our owner
+	mStateMachine.SetDebugInfo("TestHsm", TraceLevel::Basic);
+}
+
+void MyOwner::UpdateStateMachine()
+{
+	mStateMachine.ProcessStateTransitions();
+	mStateMachine.UpdateStates();
+}
+
+void MyOwner::PlaySequence()
+{
+	mPlaySequence = true;
+}
+
+bool MyOwner::GetPlaySequence() const
+{
+	return mPlaySequence;
+}
+
+int main()
+{
+	MyOwner myOwner;
+
+	myOwner.UpdateStateMachine();
+	myOwner.UpdateStateMachine();
+
+	myOwner.PlaySequence();
+
+	myOwner.UpdateStateMachine();
+	myOwner.UpdateStateMachine();
+}
+
+#elif ENABLED_SECTION == 8
+
+// ownership_easier_owner_access.cpp
+
+#include <cstdio>
+#include "hsm/statemachine.h"
+using namespace hsm;
+
+class MyOwner
+{
+public:
+	MyOwner();
+	void UpdateStateMachine();
+	void PlaySequence();
+	bool GetPlaySequence() const;
+
+private:
+	StateMachine mStateMachine;
+	bool mPlaySequence;
 };
 
 struct MyStates
@@ -334,60 +453,247 @@ struct MyStates
 	{
 	};
 
-	struct Alive : BaseState
+	struct First : BaseState
 	{
 		virtual Transition GetTransition()
 		{
-			if (Owner().IsDead())
-				return SiblingTransition<Dead>();
+			if (Owner().GetPlaySequence())
+				return SiblingTransition<Second>();
 
-			return InnerEntryTransition<Locomotion>();
+			return NoTransition();
+		}
+
+		virtual void Update()
+		{
+			printf("First::Update\n");
 		}
 	};
 
-	struct Dead : BaseState
+	struct Second : BaseState
+	{
+		virtual Transition GetTransition()
+		{
+			if (Owner().GetPlaySequence())
+				return SiblingTransition<Third>();
+
+			return NoTransition();
+		}
+
+		virtual void Update()
+		{
+			printf("Second::Update\n");
+		}
+	};
+
+	struct Third : BaseState
 	{
 		virtual Transition GetTransition()
 		{
 			return NoTransition();
 		}
-	};
 
-	struct Locomotion : BaseState
-	{
-		virtual Transition GetTransition()
+		virtual void Update()
 		{
-			return InnerEntryTransition<Stand>();
+			printf("Third::Update\n");
 		}
 	};
+};
 
-	struct Stand : BaseState
+MyOwner::MyOwner()
+{
+	mPlaySequence = false;
+	mStateMachine.Initialize<MyStates::First>(this);
+	mStateMachine.SetDebugInfo("TestHsm", TraceLevel::Basic);
+}
+
+void MyOwner::UpdateStateMachine()
+{
+	mStateMachine.ProcessStateTransitions();
+	mStateMachine.UpdateStates();
+}
+
+void MyOwner::PlaySequence()
+{
+	mPlaySequence = true;
+}
+
+bool MyOwner::GetPlaySequence() const
+{
+	return mPlaySequence;
+}
+
+int main()
+{
+	MyOwner myOwner;
+
+	myOwner.UpdateStateMachine();
+	myOwner.UpdateStateMachine();
+
+	myOwner.PlaySequence();
+
+	myOwner.UpdateStateMachine();
+	myOwner.UpdateStateMachine();
+}
+
+#elif ENABLED_SECTION == 9
+
+// ownership_access_owner_privates.cpp
+
+#include <cstdio>
+#include "hsm/statemachine.h"
+using namespace hsm;
+
+class MyOwner
+{
+public:
+	MyOwner();
+	void UpdateStateMachine();
+
+	void PlaySequence();
+
+private:
+	friend struct MyStates; //*** All states can access MyOwner's private members
+
+	StateMachine mStateMachine;
+	bool mPlaySequence;
+};
+
+struct MyStates
+{
+	struct BaseState : StateWithOwner<MyOwner>
+	{
+	};
+
+	struct First : BaseState
 	{
 		virtual Transition GetTransition()
 		{
-			if (Owner().PressedMove())
-				return SiblingTransition<Move>();
+			if (Owner().mPlaySequence) //*** Access one of owner's private members
+				return SiblingTransition<Second>();
 
 			return NoTransition();
 		}
+
+		virtual void Update()
+		{
+			printf("First::Update\n");
+		}
 	};
 
-	struct Move : BaseState
+	struct Second : BaseState
 	{
 		virtual Transition GetTransition()
 		{
-			if (!Owner().PressedMove())
-				return SiblingTransition<Stand>();
+			if (Owner().mPlaySequence) //*** Access one of owner's private members
+				return SiblingTransition<Third>();
 
+			return NoTransition();
+		}
+
+		virtual void Update()
+		{
+			printf("Second::Update\n");
+		}
+	};
+
+	struct Third : BaseState
+	{
+		virtual Transition GetTransition()
+		{
+			return NoTransition();
+		}
+
+		virtual void Update()
+		{
+			printf("Third::Update\n");
+		}
+	};
+};
+
+MyOwner::MyOwner()
+{
+	mPlaySequence = false;
+	mStateMachine.Initialize<MyStates::First>(this);
+	mStateMachine.SetDebugInfo("TestHsm", TraceLevel::Basic);
+}
+
+void MyOwner::UpdateStateMachine()
+{
+	mStateMachine.ProcessStateTransitions();
+	mStateMachine.UpdateStates();
+}
+
+void MyOwner::PlaySequence()
+{
+	mPlaySequence = true;
+}
+
+int main()
+{
+	MyOwner myOwner;
+
+	myOwner.UpdateStateMachine();
+	myOwner.UpdateStateMachine();
+
+	myOwner.PlaySequence();
+
+	myOwner.UpdateStateMachine();
+	myOwner.UpdateStateMachine();
+}
+
+#elif ENABLED_SECTION == 10
+
+// storing_data.cpp
+#include <cstdio>
+#include <string>
+#include "hsm/statemachine.h"
+using namespace hsm;
+
+class MyOwner
+{
+public:
+	MyOwner();
+	void UpdateStateMachine();
+
+private:
+	friend struct MyStates; //*** All states can access MyOwner's private members
+	StateMachine mStateMachine;
+};
+
+struct Foo
+{
+	Foo() { printf(">>> Foo created\n"); }
+	~Foo() { printf(">>>Foo destroyed\n"); }
+};
+
+struct MyStates
+{
+	struct BaseState : StateWithOwner<MyOwner>
+	{
+	};
+
+	struct First : BaseState
+	{
+		virtual Transition GetTransition()
+		{
+			return SiblingTransition<Second>();
+		}
+
+		Foo mFoo; //*** State data member
+	};
+
+	struct Second : BaseState
+	{
+		virtual Transition GetTransition()
+		{
 			return NoTransition();
 		}
 	};
 };
 
 MyOwner::MyOwner()
-	: mDead(false)
 {
-	mStateMachine.Initialize<MyStates::Alive>(this);
+	mStateMachine.Initialize<MyStates::First>(this);
 	mStateMachine.SetDebugInfo("TestHsm", TraceLevel::Basic);
 }
 
@@ -400,8 +706,6 @@ void MyOwner::UpdateStateMachine()
 int main()
 {
 	MyOwner myOwner;
-	myOwner.UpdateStateMachine();
-	myOwner.Die();
 	myOwner.UpdateStateMachine();
 }
 

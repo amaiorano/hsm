@@ -79,8 +79,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\statemachine.cpp" />
-    <ClCompile Include="chapter1.cpp" />
     <ClCompile Include="chapter2.cpp" />
+    <ClCompile Include="chapter3.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\include\hsm\config.h" />
