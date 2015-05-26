@@ -145,6 +145,9 @@ private:
 	// Returns state at input depth, or NULL if depth is invalid
 	State* GetStateAtDepth(size_t depth);
 
+	// Overload returns state at input depth if it matches input type
+	State* GetStateAtDepth(size_t depth, StateTypeId stateType);
+
 	State* GetOuterState(StateTypeId stateType, size_t startDepth);
 	const State* GetOuterState(StateTypeId stateType, size_t startDepth) const;
 	State* GetInnerState(StateTypeId stateType, size_t startDepth);
@@ -223,6 +226,18 @@ inline State* State::GetImmediateInnerState()
 inline const State* State::GetImmediateInnerState() const
 {
 	return const_cast<State*>(this)->GetImmediateInnerState();
+}
+
+template <typename StateType>
+inline StateType* State::GetImmediateInnerState()
+{
+	return static_cast<StateType*>(GetStateMachine().GetStateAtDepth(mStackDepth + 1, hsm::GetStateType<StateType>()));
+}
+
+template <typename StateType>
+inline const StateType* State::GetImmediateInnerState() const
+{
+	return const_cast<State*>(this)->GetImmediateInnerState<StateType>();
 }
 
 } // namespace hsm

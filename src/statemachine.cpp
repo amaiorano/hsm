@@ -158,6 +158,12 @@ State* StateMachine::GetStateAtDepth(size_t depth)
 	return mStateStack[depth];
 }
 
+State* StateMachine::GetStateAtDepth(size_t depth, StateTypeId stateType)
+{
+	State* state = GetStateAtDepth(depth);
+	return (state && state->GetStateType() == stateType) ? state : 0;
+}
+
 State* StateMachine::GetOuterState(StateTypeId stateType, size_t startDepth)
 {
 	const size_t numStatesToCompare = startDepth + 1;

@@ -133,6 +133,15 @@ struct State
 	State* GetImmediateInnerState();
 	const State* GetImmediateInnerState() const;
 
+	// Returns state on the stack immediately below us (our inner) if one exists AND is type StateType
+	template <typename StateType>
+	StateType* GetImmediateInnerState();
+
+	template <typename StateType>
+	const StateType* GetImmediateInnerState() const;
+
+	// Boolean query functions
+
 	template <typename StateType>
 	hsm_bool IsInState() const;
 
@@ -141,6 +150,9 @@ struct State
 
 	template <typename StateType>
 	hsm_bool IsInInnerState() const { return GetInnerState<StateType>() != 0; }
+
+	template <typename StateType>
+	hsm_bool IsInImmediateInnerState() const { return GetImmediateInnerState<StateType>() != 0; }
 
 	// Called from state functions (usually OnEnter()) to bind a StateValue to current state. Rather than
 	// passing in the new value, we return a writable reference to the StateValue's internal value to support
