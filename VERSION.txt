@@ -1,1 +1,4 @@
-1.0
+Version: 1.1
+
+Changes since 1.0
+- Fix UpdateStates to actually invoke State::Update from outer to inner, rather than from inner to outer
