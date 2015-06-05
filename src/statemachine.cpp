@@ -120,8 +120,8 @@ void StateMachine::ProcessStateTransitions()
 
 void StateMachine::UpdateStates(HSM_STATE_UPDATE_ARGS)
 {
-	InnerToOuterIterator iter = BeginInnerToOuter();
-	InnerToOuterIterator end = EndInnerToOuter();
+	OuterToInnerIterator iter = BeginOuterToInner();
+	OuterToInnerIterator end = EndOuterToInner();
 	for ( ; iter != end; ++iter)
 	{
 		(*iter)->Update(HSM_STATE_UPDATE_ARGS_FORWARD);
