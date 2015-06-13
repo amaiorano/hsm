@@ -32,3 +32,4 @@ add_hsm_lib()
 # add sample exes
 add_chapter_samples("ch2")
 add_chapter_samples("ch3")
+add_chapter_samples("ch4")
