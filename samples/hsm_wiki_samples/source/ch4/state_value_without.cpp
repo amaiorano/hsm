@@ -18,9 +18,9 @@ public:
 	void Update();
 
 	// Public to simplify sample
-	bool m_inWater;
-	bool m_move;
-	bool m_crawl;
+	bool mInWater;
+	bool mMove;
+	bool mCrawl;
 
 private:
 	friend struct CharacterStates;
@@ -48,7 +48,7 @@ struct CharacterStates
 	{
 		virtual Transition GetTransition()
 		{
-			if (Owner().m_inWater)
+			if (Owner().mInWater)
 				return SiblingTransition<Swim>();
 
 			return InnerEntryTransition<Stand>();
@@ -59,7 +59,7 @@ struct CharacterStates
 	{
 		virtual Transition GetTransition()
 		{
-			if (Owner().m_move)
+			if (Owner().mMove)
 				return SiblingTransition<Move>();
 
 			return NoTransition();
@@ -70,7 +70,7 @@ struct CharacterStates
 	{
 		virtual Transition GetTransition()
 		{
-			if (!Owner().m_move)
+			if (!Owner().mMove)
 				return SiblingTransition<Stand>();
 
 			return InnerEntryTransition<Move_Walk>();
@@ -94,7 +94,7 @@ struct CharacterStates
 
 		virtual Transition GetTransition()
 		{
-			if (Owner().m_crawl)
+			if (Owner().mCrawl)
 				return SiblingTransition<Move_Crawl>();
 			
 			return NoTransition();
@@ -118,7 +118,7 @@ struct CharacterStates
 
 		virtual Transition GetTransition()
 		{
-			if (!Owner().m_crawl)
+			if (!Owner().mCrawl)
 				return SiblingTransition<Move_Walk>();
 
 			return NoTransition();
@@ -142,7 +142,7 @@ struct CharacterStates
 
 		virtual Transition GetTransition()
 		{
-			if (!Owner().m_inWater)
+			if (!Owner().mInWater)
 				return SiblingTransition<OnGround>();
 
 			return NoTransition();
@@ -151,9 +151,9 @@ struct CharacterStates
 };
 
 Character::Character()
-	: m_inWater(false)
-	, m_move(false)
-	, m_crawl(false)
+	: mInWater(false)
+	, mMove(false)
+	, mCrawl(false)
 	, mSpeedScale(0.0f) // By default we don't move
 {
 	mStateMachine.Initialize<CharacterStates::Alive>(this);
@@ -180,17 +180,17 @@ int main()
 	Character character;
 	character.Update();
 
-	character.m_move = true;
+	character.mMove = true;
 	character.Update();
 
-	character.m_crawl = true;
+	character.mCrawl = true;
 	character.Update();
 
-	character.m_inWater = true;
+	character.mInWater = true;
 	character.Update();
 
-	character.m_inWater = false;
-	character.m_move = false;
-	character.m_crawl = false;
+	character.mInWater = false;
+	character.mMove = false;
+	character.mCrawl = false;
 	character.Update();
 }

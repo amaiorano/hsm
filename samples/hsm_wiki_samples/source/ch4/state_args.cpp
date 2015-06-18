@@ -27,8 +27,8 @@ public:
 	void Update();
 
 	// Public to simplify sample
-	bool m_move;
-	bool m_jump;
+	bool mMove;
+	bool mJump;
 
 private:
 	friend struct CharacterStates;
@@ -87,7 +87,7 @@ struct CharacterStates
 	{
 		virtual Transition GetTransition()
 		{
-			if (Owner().m_move)
+			if (Owner().mMove)
 				return SiblingTransition<Move>();
 
 			return InnerEntryTransition<PlayAnim>(PlayAnim::Args("Anim_Stand"));
@@ -98,12 +98,12 @@ struct CharacterStates
 	{
 		virtual Transition GetTransition()
 		{
-			if (!Owner().m_move)
+			if (!Owner().mMove)
 				return SiblingTransition<Stand>();
 
-			if (Owner().m_jump)
+			if (Owner().mJump)
 			{
-				Owner().m_jump = false; // We've processed jump input, clear to avoid infinite transitions
+				Owner().mJump = false; // We've processed jump input, clear to avoid infinite transitions
 				return SiblingTransition<Jump>();
 			}
 
@@ -124,8 +124,8 @@ struct CharacterStates
 };
 
 Character::Character()
-	: m_move(false)
-	, m_jump(false)
+	: mMove(false)
+	, mJump(false)
 {
 	mStateMachine.Initialize<CharacterStates::Alive>(this);
 	mStateMachine.SetDebugInfo("TestHsm", TraceLevel::Basic);
@@ -144,9 +144,9 @@ int main()
 
 	character.Update();
 
-	character.m_move = true;
+	character.mMove = true;
 	character.Update();
 
-	character.m_jump = true;
+	character.mJump = true;
 	character.Update();
 }
