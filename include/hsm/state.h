@@ -90,6 +90,7 @@ struct State
 {
 	State()
 		: mOwnerStateMachine(0)
+		, mStackDepth(0)
 		, mStateValueResetters(0)
 		, mStateDebugName(0)
 	{

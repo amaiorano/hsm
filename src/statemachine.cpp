@@ -66,6 +66,7 @@ StateMachine::StateMachine()
 	: mOwner(0)
 	, mDebugTraceLevel(TraceLevel::None)
 {
+	mDebugName[0] = '\0';
 }
 
 StateMachine::~StateMachine()
@@ -329,7 +330,7 @@ void StateMachine::Log(size_t minLevel, size_t numSpaces, const hsm_char* format
 	if (static_cast<size_t>(mDebugTraceLevel) >= minLevel)
 	{
 		static hsm_char buffer[4096];
-		int offset = SNPRINTF(buffer, sizeof(buffer), HSM_TEXT("HSM_%d_%s:%*s "), minLevel, mDebugName, numSpaces, "");
+ 		int offset = SNPRINTF(buffer, sizeof(buffer), HSM_TEXT("HSM_%lu_%s:%*s "), static_cast<unsigned long>(minLevel), mDebugName, static_cast<int>(numSpaces), "");
 
 		va_list args;
 		va_start(args, format);
@@ -337,6 +338,7 @@ void StateMachine::Log(size_t minLevel, size_t numSpaces, const hsm_char* format
 
 		// Print to stdout
 		HSM_PRINTF(HSM_TEXT("%s"), buffer);
+		va_end(args);
 	}
 }
 
