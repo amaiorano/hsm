@@ -53,6 +53,24 @@ namespace detail
 	{
 		typedef FalseType Type;
 	};
+
+	template <typename T, typename U>
+	struct IsSame
+	{
+		static const bool value = false;
+	};
+
+	template <typename T>
+	struct IsSame<T, T>
+	{
+		static const bool value = true;
+	};
+
+	template <typename T, typename U>
+	struct IsDifferent
+	{
+		static const bool value = !IsSame<T, U>::value;
+	};
 }
 
 // ConcreteStateFactory is the actual state creator; these are allocated statically in the transition
@@ -74,7 +92,7 @@ struct ConcreteStateFactory : StateFactory
 	{
 		// We select which functor to call at compile-time so that only states that expect StateArgs are required to implement
 		// an OnEnter(const Args& args) where Args is a struct derived from StateArgs defined within TargetState.
-		const bool expectsStateArgs = sizeof(typename TargetState::Args) > sizeof(StateArgs);
+		const bool expectsStateArgs = detail::IsDifferent<typename TargetState::Args, State::Args>::value;
 		typedef typename detail::Select<expectsStateArgs, InvokeStateOnEnterWithArgsFunctor, InvokeStateOnEnterNoArgsFunctor>::Type Functor;
 		Functor::Execute(state, stateArgs);
 	}
