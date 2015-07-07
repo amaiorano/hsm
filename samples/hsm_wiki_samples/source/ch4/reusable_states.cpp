@@ -1,4 +1,4 @@
-// deferred_transitions_2.cpp
+// reusable_states.cpp
 
 #include "hsm/statemachine.h"
 
