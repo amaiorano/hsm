@@ -495,7 +495,7 @@ def GetAttributesForState(hsm, state):
 		label = label.replace("_", "-")
 	result = "label=\"%s\"" % label
 	if state.IsProxy:
-		result = result + ",shape=parallelogram"
+		result += ",shape=parallelogram"
 
 	if DOT_USE_COLOR:
 		# We select a unique hue per cluster
@@ -546,9 +546,8 @@ def GetAttributesForChildPositioningEdge(transition):
 	#attributes = "[weight=%d,color=\"gray\",label=\"%d\"]" % (weight, weight)
 	return attributes
 
-#prohibited = ["Alive", "Grounded"]
 prohibited = []
-allowed = [] #["Gatling"]
+allowed = []
 
 def ShouldPrintState(a):
 	if not a.IsVisible():
@@ -665,7 +664,7 @@ def PrintDotFile(hsm):
 
 	print ("}")
 
-# Deploy on each console
+
 def main(argv = None):
 	if argv is None:
 		argv = sys.argv
