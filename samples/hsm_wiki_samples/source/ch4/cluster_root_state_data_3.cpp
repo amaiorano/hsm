@@ -26,7 +26,7 @@ struct CharacterStates
 
 		virtual void OnEnter()
 		{
-			mRootState = GetOuterState<RootStateType>();
+			mRootState = this->template GetOuterState<RootStateType>();
 			assert(mRootState);
 		}
 
