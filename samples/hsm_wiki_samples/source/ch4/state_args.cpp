@@ -8,7 +8,7 @@ class AnimComponent
 {
 public:
 	AnimComponent() : mLoop(false) {}
-	void PlayAnim(const char* name, bool loop, float blendTime, float rate)
+	void PlayAnim(const char* name, bool loop, float /*blendTime*/, float /*rate*/)
 	{
 		printf(">>> PlayAnim: %s, looping: %s\n", name, loop ? "true" : "false");
 		mLoop = loop;

@@ -7,7 +7,7 @@ using namespace hsm;
 class PhysicsComponent
 {
 public:
-	void SetSpeed(float speed) {} // Stub
+	void SetSpeed(float /*speed*/) {} // Stub
 	void Move() {} // Stub
 };
 
