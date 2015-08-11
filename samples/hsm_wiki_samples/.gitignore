@@ -1,0 +1,6 @@
+# Ignore everything except specific files so that cmake can be run anywhere in this directory tree.
+/*
+!.git*
+!README.md
+!CMakeLists.txt
+!/source

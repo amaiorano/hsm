@@ -224,7 +224,9 @@ void Player::Init()
 {
 	// Initialize the state machine, passing in the root state type, the owner (this), and debug info.
 	int debugLevel = 2; // 0 is no logging, 1 is basic logging, and 2 is verbose (for now, these may change)
-	m_stateMachine.Initialize<States::Root>(this, HSM_TEXT("Player"), debugLevel);
+	m_stateMachine.Initialize<States::Root>(this);
+	
+	m_stateMachine.SetDebugInfo(HSM_TEXT("Player"), TraceLevel::Basic);
 }
 
 void Player::Shutdown()
