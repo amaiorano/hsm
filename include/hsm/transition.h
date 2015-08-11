@@ -40,6 +40,9 @@ struct StateFactory
 	virtual void InvokeStateOnEnter(State* state, const StateArgs* stateArgs) const = 0;
 };
 
+inline bool operator==(const StateFactory& lhs, const StateFactory& rhs) { return lhs.GetStateType() == rhs.GetStateType(); }
+inline bool operator!=(const StateFactory& lhs, const StateFactory& rhs) { return !(lhs == rhs); }
+
 namespace detail
 {
 	template <bool condition, typename TrueType, typename FalseType>

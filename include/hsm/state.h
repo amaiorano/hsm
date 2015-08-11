@@ -202,6 +202,9 @@ struct State
 	// stack has settled, and is where a state can do it's work.
 	virtual void Update(HSM_STATE_UPDATE_ARGS) {}
 
+	template <typename SourceState>
+	const hsm::StateFactory& GetStateOverride();
+
 private:
 
 #if HSM_CPP_RTTI

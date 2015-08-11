@@ -13,6 +13,7 @@
 #define HSM_CONFIG_H
 
 #include <vector>
+#include <map>
 #include <string>
 #include <cassert>
 #include <cstdio>
@@ -31,6 +32,7 @@
 #endif
 
 #define HSM_STD_VECTOR std::vector
+#define HSM_STD_MAP std::map
 #define HSM_ASSERT assert
 #define HSM_ASSERT_MSG(cond, msg) assert((cond) && msg)
 #define HSM_NEW new

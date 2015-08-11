@@ -117,6 +117,17 @@ public:
 	template <typename StateType>
 	hsm_bool IsInState() const { return IsInState(hsm::GetStateType<StateType>()); }
 
+	// State override functions
+
+	template <typename SourceState, typename TargetState>
+	void AddStateOverride();
+
+	template <typename SourceState>
+	void RemoveStateOverride();
+
+	template <typename SourceState>
+	const StateFactory& GetStateOverride();
+
 
 	//@DEPRECATED: Initialize should no longer accept debug info. Use SetDebugInfo instead.
 	template <typename InitialStateType>
@@ -168,10 +179,36 @@ private:
 	Owner* mOwner; // Provided by client, accessed within states via StateWithOwner<>::Owner()
 	Transition mInitialTransition;
 	StackType mStateStack;
+
+	typedef std::map<const StateFactory*, const StateFactory*> OverrideMap;
+	OverrideMap mStateOverrides;
 	
 	hsm_char mDebugName[HSM_DEBUG_NAME_MAXLEN];
 	TraceLevel::Type mDebugTraceLevel;
 };
+
+// Inline state machine function implementations
+
+template <typename SourceState, typename TargetState>
+inline void StateMachine::AddStateOverride()
+{
+	mStateOverrides[&hsm::GetStateFactory<SourceState>()] = &hsm::GetStateFactory<TargetState>();
+}
+
+template <typename SourceState>
+inline void StateMachine::RemoveStateOverride()
+{
+	const hsm::StateFactory& sourceStateFactory = hsm::GetStateFactory<SourceState>();
+	mStateOverrides.erase(mStateOverrides.find(&sourceStateFactory));
+}
+
+template <typename SourceState>
+inline const StateFactory& StateMachine::GetStateOverride()
+{
+	const StateFactory& sourceStateFactory = GetStateFactory<SourceState>();
+	OverrideMap::iterator iter = mStateOverrides.find(&sourceStateFactory);
+	return iter == mStateOverrides.end() ? sourceStateFactory : *iter->second;
+}
 
 
 // Inline State member function implementations - implemented here because they depend StateMachine being defined
@@ -239,6 +276,13 @@ inline const StateType* State::GetImmediateInnerState() const
 {
 	return const_cast<State*>(this)->GetImmediateInnerState<StateType>();
 }
+
+template <typename SourceState>
+inline const StateFactory& State::GetStateOverride()
+{
+	return GetStateMachine().GetStateOverride<SourceState>();
+}
+
 
 } // namespace hsm
 
