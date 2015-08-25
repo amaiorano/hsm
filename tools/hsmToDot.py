@@ -16,6 +16,8 @@ Usage: {} <filespec>
 DOT_LEFT_RIGHT = False
 DOT_USE_COLOR = True
 DOT_FONT = "Helvetica"
+
+DISPLAYED_RANK_OFFSET = 1
 	
 STRIP_COMMENTS_RE = re.compile("(.*?)//(.*)", re.IGNORECASE)
 NEW_STATE_RE = re.compile("struct\s+(\w+)\s*:\s*(?:public)?\s*(\w+)", re.IGNORECASE)
@@ -97,6 +99,9 @@ class State:
 
 	def Siblings(self, mustBeLegal = True):
 		return filter(lambda x: (x.Type == SIBLING_TRANSITION) and (x.IsLegal or not mustBeLegal), self._transitions)
+		
+	def SiblingStates(self, mustBeLegal = True):
+		return [t.TargetState for t in self.Siblings(mustBeLegal)]
 			   
 	def Transitions(self):
 		return self._transitions
@@ -213,6 +218,7 @@ class Hsm:
 		for root in self.GetRoots():
 			#Info("Visiting root: " + root.Name)
 			self._ValidateCycleTopologyAndAssignRanksForState(root, 0)
+		#Info("States+ranks: {}".format([(s.Name,s.Rank) for s in self._states.values()]))
 
 	def _AssignParentsAndChildrenForState(self, state, statesOnStack = None):
 		if statesOnStack is None:
@@ -328,14 +334,40 @@ class Hsm:
 		self.VisitAllStatesOnceDepthFirst(self._AssignClusterForState)
 
 	def _MarkRoots(self):
+		def _RemoveSiblings(state, roots):
+			for s in state.SiblingStates():
+				if s in roots:
+					roots.remove(s)
+					_RemoveSiblings(s, roots)
+			if state in roots:
+				roots.remove(state)
+
+		# Assume all states are roots, then remove any state that has an inner transition to it, and
+		# all of its siblings. This will leave real root states and base states.
 		roots = self._states.values()
 		for state in self._states.values():
 			for transition in state.Transitions():
-				if transition.TargetState in roots and transition.TargetState != state:
-					roots.remove(transition.TargetState)
+				if transition.TargetState in roots and transition.Type in [INNER_TRANSITION, INNER_ENTRY_TRANSITION]:
+					#Info(">>> Removing {} and its siblings because a state inners to it".format(transition.TargetState.Name))
+					_RemoveSiblings(transition.TargetState, roots)
+
+		# Mark non-base states as real roots
 		for potentialRoot in roots:
 			if not potentialRoot.IsBase:
 				potentialRoot.IsRoot = True
+
+		#Info("Roots are: {}".format([(s.Name,s.IsRoot) for s in roots]))
+
+		# Finally, this script only works if there's one single real root state,
+		# so if we have more than one real root, add a surrogate parent to all of them.
+		realRoots = [s for s in roots if s.IsRoot]
+		if len(realRoots) > 1:
+			surrogateRoot = self.AddState("HiddenRoot", "")
+			surrogateRoot.IsRoot = True
+			surrogateRoot.IsHidden = True
+			for s in realRoots:
+				surrogateRoot.AddTransition(INNER_ENTRY_TRANSITION, s)
+				s.IsRoot = False
 	
 	def GetRoots(self):
 		return filter(lambda x: x.IsRoot, self._states.values())
@@ -395,7 +427,7 @@ class Hsm:
 		self._AssignStates()
 		self._InheritBaseTransitions() # Only requires transition targets and state bases to be resolved
 		self._MarkRoots()
-		self._ValidateRootTopology() # finds duplicate DAG roots; does NOT requires parent information
+		self._ValidateRootTopology() # finds duplicate DAG roots; does NOT require parent information
 		self._CreateSurrogateRoots() # creates "fake" roots if required, to ensure that we really have a tree; requires valid root topology, does not require parent/child info
 		self._ValidateCycleTopologyAndAssignRanksForRoots() # marks illegal cycles, required for marking parents/children; requires no duplicate DAG roots
 		self._ReplaceReusableStatesWithProxies() # requires no cycles
@@ -424,6 +456,9 @@ class Hsm:
 
 	def GetMaxRank(self):
 		return reduce(lambda x, y: max(x, y), (x.Rank for x in self._states.values()))
+		
+	def GetMinVisibleRank(self):
+		return reduce(lambda x, y: min(x, y), (x.Rank for x in self._states.values() if not x.IsHidden and x.Rank >= 0))
 			
 	def GetStatesByCluster(self, cluster):
 		return filter(lambda x: x.Cluster == cluster, self._states.values())
@@ -482,15 +517,17 @@ def ParseHsm(filespec, hsm):
 		   
 	return hsm
 
-def GetLabelForState(state):
-	return "%s (%d)" % (state.Name, state.Rank)
+def GetLabelForState(hsm, state):
+	rank = state.Rank - hsm.GetMinVisibleRank() + DISPLAYED_RANK_OFFSET
+	return "%s (%d)" % (state.Name, rank)
+	#return "%s (%d)" % (state.Name, state.Rank)
 	#return state.Name
 	#return "%s (%d)" % (state.Name, state.IsReusable)
 	#return ("%s (:%s) (C:%s) (%d)" % (state.Name, state.BaseName, state.Cluster, state.Rank))
 	#return ("%s (C:%s)" % (state.Name, " ".join(state.Clusters)))
 	
 def GetAttributesForState(hsm, state):
-	label = GetLabelForState(state)
+	label = GetLabelForState(hsm, state)
 	if REPLACE_UNDERSCORES_WITH_DASHES:
 		label = label.replace("_", "-")
 	result = "label=\"%s\"" % label
@@ -641,7 +678,7 @@ def PrintDotFile(hsm):
 			if len(rankStatesInCluster) > 0:
 				print("%s  {\n%s    rank = same;" % (indent, indent))
 				for state in rankStatesInCluster:
-					if state.IsVisible() and ShouldPrintState(state):
+					if ShouldPrintState(state):
 						print("%s    %s [%s];" % (indent, state.Name, GetAttributesForState(hsm, state)))
 				print("%s  }" % indent)
 				
