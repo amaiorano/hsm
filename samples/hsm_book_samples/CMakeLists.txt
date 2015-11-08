@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 2.6)
 
-project (hsm_wiki_samples)
+project (hsm_book_samples)
 
 if(MSVC)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP") # Multiprocessor build
