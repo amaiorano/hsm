@@ -12,9 +12,14 @@ Requires GraphViz 2.18 (Windows: http://www.graphviz.org/pub/graphviz/stable/win
 Usage: {} <filespec>
 	""".format(os.path.basename(sys.argv[0]))
 	
+def GetScriptPath():
+    return os.path.dirname(os.path.realpath(sys.argv[0]))
+	
 def ExecCommand(command):
 	print('[Exec] ' + command)
-	os.system(command)
+	result = os.system(command)
+	if result != 0:
+		raise Exception("Command failed!")
 
 def main(argv = None):
 	if argv is None:
@@ -27,8 +32,8 @@ def main(argv = None):
 	filespec = argv[1]
 		
 	# Write dot file
-	dotFile = tempfile.gettempdir() + os.path.sep + os.path.basename(filespec) + '.dot'
-	ExecCommand('hsmToDot.py ' + filespec + '>' + dotFile)
+	dotFile = os.path.join(tempfile.gettempdir(), os.path.basename(filespec) + '.dot')
+	ExecCommand(os.path.join(GetScriptPath(), 'hsmToDot.py') + ' ' + filespec + ' > ' + dotFile)
 	
 	# Invoke dot to produce image
 	pngFile = dotFile + '.png'

@@ -40,6 +40,9 @@ struct StateFactory
 	virtual void InvokeStateOnEnter(State* state, const StateArgs* stateArgs) const = 0;
 };
 
+inline bool operator==(const StateFactory& lhs, const StateFactory& rhs) { return lhs.GetStateType() == rhs.GetStateType(); }
+inline bool operator!=(const StateFactory& lhs, const StateFactory& rhs) { return !(lhs == rhs); }
+
 namespace detail
 {
 	template <bool condition, typename TrueType, typename FalseType>
@@ -52,6 +55,24 @@ namespace detail
 	struct Select<false, TrueType, FalseType>
 	{
 		typedef FalseType Type;
+	};
+
+	template <typename T, typename U>
+	struct IsSame
+	{
+		static const bool value = false;
+	};
+
+	template <typename T>
+	struct IsSame<T, T>
+	{
+		static const bool value = true;
+	};
+
+	template <typename T, typename U>
+	struct IsDifferent
+	{
+		static const bool value = !IsSame<T, U>::value;
 	};
 }
 
@@ -74,7 +95,7 @@ struct ConcreteStateFactory : StateFactory
 	{
 		// We select which functor to call at compile-time so that only states that expect StateArgs are required to implement
 		// an OnEnter(const Args& args) where Args is a struct derived from StateArgs defined within TargetState.
-		const bool expectsStateArgs = sizeof(typename TargetState::Args) > sizeof(StateArgs);
+		const bool expectsStateArgs = detail::IsDifferent<typename TargetState::Args, State::Args>::value;
 		typedef typename detail::Select<expectsStateArgs, InvokeStateOnEnterWithArgsFunctor, InvokeStateOnEnterNoArgsFunctor>::Type Functor;
 		Functor::Execute(state, stateArgs);
 	}

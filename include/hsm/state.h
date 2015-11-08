@@ -90,6 +90,7 @@ struct State
 {
 	State()
 		: mOwnerStateMachine(0)
+		, mStackDepth(0)
 		, mStateValueResetters(0)
 		, mStateDebugName(0)
 	{
@@ -200,6 +201,9 @@ struct State
 	// Called by StateMachine::UpdateStates from outermost to innermost state. Usually invoked after the state
 	// stack has settled, and is where a state can do it's work.
 	virtual void Update(HSM_STATE_UPDATE_ARGS) {}
+
+	template <typename SourceState>
+	const hsm::StateFactory& GetStateOverride();
 
 private:
 
