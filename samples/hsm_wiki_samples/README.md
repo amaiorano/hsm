@@ -2,7 +2,6 @@ This is a collection of all sample programs from the HSM book.
 
 To build samples:
 
-- Install cmake
+- Install [CMake](https://cmake.org)
 - Run ```cmake .```
-- Windows: open hsm_wiki_samples.sln and build. Each sample is a separate executable.
-- Other platforms: I haven't tested it, but it should work.
+- Now you can build the generated make file/workspace/solution depending on your target platform.
