@@ -283,6 +283,18 @@ struct StateWithOwner : StateBaseType
 	}
 };
 
+
+// Implemented here because this function requires State to be fully defined (i.e. a complete type)
+template <typename TargetState> 
+void ConcreteStateFactory<TargetState>::InvokeStateOnEnter(State* state, const StateArgs* stateArgs) const
+{
+		// We select which functor to call at compile-time so that only states that expect StateArgs are required to implement
+		// an OnEnter(const Args& args) where Args is a struct derived from StateArgs defined within TargetState.
+		const bool expectsStateArgs = detail::IsDifferent<typename TargetState::Args, State::Args>::value;
+		typedef typename detail::Select<expectsStateArgs, InvokeStateOnEnterWithArgsFunctor, InvokeStateOnEnterNoArgsFunctor>::Type Functor;
+		Functor::Execute(state, stateArgs);
+}
+
 } // namespace hsm
 
 #endif // HSM_STATE_H

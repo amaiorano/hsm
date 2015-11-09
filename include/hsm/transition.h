@@ -91,14 +91,8 @@ struct ConcreteStateFactory : StateFactory
 		return HSM_NEW TargetState();
 	}
 
-	virtual void InvokeStateOnEnter(State* state, const StateArgs* stateArgs) const
-	{
-		// We select which functor to call at compile-time so that only states that expect StateArgs are required to implement
-		// an OnEnter(const Args& args) where Args is a struct derived from StateArgs defined within TargetState.
-		const bool expectsStateArgs = detail::IsDifferent<typename TargetState::Args, State::Args>::value;
-		typedef typename detail::Select<expectsStateArgs, InvokeStateOnEnterWithArgsFunctor, InvokeStateOnEnterNoArgsFunctor>::Type Functor;
-		Functor::Execute(state, stateArgs);
-	}
+	// See implementation of this function after class State is defined
+	virtual void InvokeStateOnEnter(State* state, const StateArgs* stateArgs) const;
 
 private:
 	// Only GetStateFactory can create this type
