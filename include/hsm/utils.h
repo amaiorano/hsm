@@ -17,72 +17,74 @@
 namespace hsm {
 namespace util {
 
-// Similar to boost::intrusive_ptr, but I don't want to bring in all of boost.
-// One difference is that I provide default implementations for intrusive_ptr_add_ref()
-// and intrusive_ptr_release() and an optional mixin class intrusive_ptr_client.
-
+// IntrusivePtr is a ref-counting smart pointer that deletes the pointed-to object when its
+// ref count reaches 0. The pointed-to object is expected to implement AddRef/RemoveRef
+// (see IntrusivePtrClient below for a default implementation that can be used).
+// @NOTE: object is required to be allocated using HSM_NEW.
 template <typename T>
-class intrusive_ptr
+class IntrusivePtr
 {
 public:
-	typedef intrusive_ptr<T> this_type;
+	typedef IntrusivePtr<T> ThisType;
 
-	intrusive_ptr(T* object = 0) : mObject(object)
+	IntrusivePtr(T* object = 0) : mObject(object)
 	{
-		safe_add_ref();
+		InvokeAddRef();
 	}
 
-	~intrusive_ptr()
+	~IntrusivePtr()
 	{
-		safe_remove_ref();
+		InvokeRemoveRef();
 	}
 
-	intrusive_ptr(const this_type& rhs) : mObject(rhs.get())
+	IntrusivePtr(const ThisType& rhs) : mObject(rhs.Get())
 	{
-		safe_add_ref();
+		InvokeAddRef();
 	}
 
 	template <typename U>
-	intrusive_ptr(const intrusive_ptr<U>& rhs) : mObject(rhs.get())
+	IntrusivePtr(const IntrusivePtr<U>& rhs) : mObject(rhs.Get())
 	{
-		safe_add_ref();
+		InvokeAddRef();
 	}
 
-	this_type& operator=(const this_type& rhs)
+	ThisType& operator=(const ThisType& rhs)
 	{
 		// This neat "swap" trick uses the constructor/destructor to do the work.
-		this_type(rhs).swap(*this);
+		ThisType(rhs).swap(*this);
 		return *this;
 	}
 
 	template <typename U>
-	this_type& operator=(const intrusive_ptr<U>& rhs)
+	ThisType& operator=(const IntrusivePtr<U>& rhs)
 	{
-		this_type(rhs).swap(*this);
+		ThisType(rhs).swap(*this);
 		return *this;
 	}
 
 	// Since the object holds its own ref count, we can safely assign an object
-	// directly to an intrusive_ptr, even if another intrusive_ptr already points
+	// directly to an IntrusivePtr, even if another IntrusivePtr already points
 	// to it. Note that this is not possible with shared_ptr, so this assignment
 	// operator is not made available for shared_ptr.
-	this_type& operator=(T* object)
+	ThisType& operator=(T* object)
 	{
-		reset(object);
+		Reset(object);
 		return *this;
 	}
 
-	void reset(T* object = 0)
+	void Reset(T* object = 0)
 	{
-		this_type(object).swap(*this);
+		ThisType(object).swap(*this);
 	}
 
-	T* get() const
+	T* Get() const { return mObject; }
+
+	T* operator->()
 	{
 		return mObject;
 	}
-
-	T* operator->()
+	
+	const T* operator->() const
 	{
 		return mObject;
 	}
@@ -91,8 +93,13 @@ public:
 	{
 		return *mObject;
 	}
+	
+	const T& operator*() const
+	{
+		return *mObject;
+	}
 
-	void swap(this_type& rhs)
+	void swap(ThisType& rhs)
 	{
 		T* lhsObject = mObject;
 		mObject = rhs.mObject;
@@ -100,19 +107,19 @@ public:
 	}
 
 private:
-	void safe_add_ref()
+	void InvokeAddRef()
 	{
 		if (mObject)
 		{
-			intrusive_ptr_add_ref(mObject);
+			mObject->AddRef();
 		}
 	}
 
-	void safe_remove_ref()
+	void InvokeRemoveRef()
 	{
-		if (mObject)
+		if (mObject && mObject->RemoveRef() == 0)
 		{
-			intrusive_ptr_release(mObject);
+			HSM_DELETE(mObject);
 			mObject = 0;
 		}
 	}
@@ -120,49 +127,23 @@ private:
 	T* mObject;
 };
 
-
-// Default implementations: expect functions to exist on object. To override,
-// simply overload this function for your specific type T.
-template <typename T>
-void intrusive_ptr_add_ref(T* object)
-{
-	object->intrusive_ptr_add_ref(); // Must increase ref count
-}
-
-template <typename T>
-void intrusive_ptr_release(T* object)
-{
-	object->intrusive_ptr_release(); // Must delete if ref count drops to 0
-}
-
-// Optional class that T can derive from for a default intrusive_add_ref/intrusive_remove_ref implementation
-class intrusive_ptr_client
+// Optional class that T can derive from to add required functionality for IntrusivePtr<T>
+class IntrusivePtrClient
 {
 public:
-	intrusive_ptr_client() : mRefCount(0)
-	{
-	}
+	IntrusivePtrClient() : mRefCount(0) {}
+	virtual ~IntrusivePtrClient() {}
 
-	virtual ~intrusive_ptr_client()
-	{
-	}
-
-	void intrusive_ptr_add_ref() const
+	void AddRef() const
 	{
 		++mRefCount;
-		//printf("0x%x AddRef (count = %d)\n", this, mRefCount);
 	}
 
-	void intrusive_ptr_release() const
+	int RemoveRef() const
 	{
+		HSM_ASSERT(mRefCount > 0);
 		--mRefCount;
-		//printf("0x%x Release (count = %d)\n", this, mRefCount);
-
-		//@TODO: ASSERT(mRefCount >= 0)
-		if (mRefCount == 0)
-		{
-			HSM_DELETE(this);
-		}
+		return mRefCount;
 	}
 
 private:

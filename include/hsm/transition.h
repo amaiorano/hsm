@@ -22,7 +22,7 @@ struct StateFactory;
 
 // StateArgs: For states that wish to receive arguments via OnEnter, implement an inner struct named 'Args' that derives
 // from StateArgs, and implement State::OnEnter(const Args& args).
-struct StateArgs : util::intrusive_ptr_client
+struct StateArgs : util::IntrusivePtrClient
 {
 	virtual ~StateArgs() {} // Make sure destructors get called in derived types
 };
@@ -159,7 +159,7 @@ struct Transition
 		, mStateFactory(&stateFactory)
 	{
 		// Copy-construct new instance of state args, stored in intrusive_ptr for ref counting
-		mStateArgs.reset( HSM_NEW StateArgsType(stateArgs) );
+		mStateArgs.Reset( HSM_NEW StateArgsType(stateArgs) );
 	}
 
 	Transition::Type GetTransitionType() const { return mTransitionType; }
@@ -172,12 +172,12 @@ struct Transition
 	hsm_bool IsNo() const { return mTransitionType == No; }
 
 	//@NOTE: Do not cache returned pointer
-	const StateArgs* GetStateArgs() const { return mStateArgs.get(); }
+	const StateArgs* GetStateArgs() const { return mStateArgs.Get(); }
 
 private:
 	Transition::Type mTransitionType;
 	const StateFactory* mStateFactory; // Bald pointer is safe for shallow copying because StateFactory instances are always statically allocated
-	util::intrusive_ptr<const StateArgs> mStateArgs; // Reference counted pointer so we can safely copy Transitions without leaking
+	util::IntrusivePtr<const StateArgs> mStateArgs; // Reference counted pointer so we can safely copy Transitions without leaking
 };
 
 
