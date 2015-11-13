@@ -9,12 +9,6 @@
 /// \file statemachine.cpp
 /// \brief StateMachine implementation.
 
-#ifdef _MSC_VER
-#ifndef _CRT_SECURE_NO_WARNINGS
-#define _CRT_SECURE_NO_WARNINGS
-#endif
-#endif // _MSC_VER
-
 #include "../include/hsm/statemachine.h"
 #include <stdarg.h>
 

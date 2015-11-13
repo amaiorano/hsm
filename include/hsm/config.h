@@ -54,12 +54,17 @@ typedef char hsm_char;
 #define STRCMP ::strcmp
 
 #ifdef _MSC_VER
-#define SNPRINTF ::_snprintf
+#define SNPRINTF ::_snprintf_s
 #else
 #define SNPRINTF ::snprintf
 #endif
 
+#ifdef _MSC_VER
+#define STRNCPY ::strncpy_s
+#else
 #define STRNCPY ::strncpy
+#endif
+
 #define VSNPRINTF ::vsnprintf
 
 //typedef wchar_t hsm_char;
