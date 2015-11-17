@@ -1,4 +1,4 @@
-#include "../../include/hsm/statemachine.h"
+#include "../../include/hsm.h"
 
 // Player is a class that _owns_ a state machine. The states defined in the cpp can access this
 // owner and can access its privates.
