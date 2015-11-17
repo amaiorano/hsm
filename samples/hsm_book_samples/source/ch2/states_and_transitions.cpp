@@ -1,6 +1,6 @@
 // states_and_transitions.cpp
 
-#include "hsm/statemachine.h"
+#include "hsm.h"
 
 using namespace hsm;
 

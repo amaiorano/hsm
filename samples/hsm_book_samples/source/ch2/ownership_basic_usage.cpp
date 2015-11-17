@@ -1,7 +1,7 @@
 // ownership_basic_usage.cpp
 
 #include <cstdio>
-#include "hsm/statemachine.h"
+#include "hsm.h"
 using namespace hsm;
 
 class MyOwner

@@ -1,6 +1,6 @@
 // shared_states_unrelated_owners.cpp
 
-#include "hsm/statemachine.h"
+#include "hsm.h"
 
 using namespace hsm;
 

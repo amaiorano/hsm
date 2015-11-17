@@ -1,6 +1,6 @@
 // parallel_state_machines.cpp
 
-#include "hsm/statemachine.h"
+#include "hsm.h"
 
 using namespace hsm;
 

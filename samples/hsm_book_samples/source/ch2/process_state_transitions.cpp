@@ -1,7 +1,7 @@
 // process_state_transitions.cpp
 
 #include <cstdio>
-#include "hsm/statemachine.h"
+#include "hsm.h"
 using namespace hsm;
 
 bool gStartOver = false;

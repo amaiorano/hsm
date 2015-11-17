@@ -12,9 +12,9 @@ endif()
 
 function(add_hsm_lib)
 	message(STATUS "Adding hsm lib")
-	file(GLOB HSM_SRC "../../src/*.*")
-	file(GLOB HSM_INC "../../include/hsm/*.*")
-	add_library(hsm ${HSM_SRC} ${HSM_INC})
+	# Add a header-only project (an INTERFACE library in CMake)
+	add_library(hsm INTERFACE)
+	target_include_directories(hsm INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>)
 endfunction(add_hsm_lib)
 
 # Adds a project (exe) per source file found in source/${CHAPTER_NAME}
@@ -30,9 +30,6 @@ function(add_chapter_samples CHAPTER_NAME)
 		target_link_libraries("${PROJ_NAME}" hsm) # link against hsm lib
 	endforeach(SRC_FILE)
 endfunction(add_chapter_samples)
-
-# hsm include dir
-include_directories("../../include")
 
 # add hsm library
 add_hsm_lib()
