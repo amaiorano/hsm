@@ -19,6 +19,9 @@
 #ifdef _MSC_VER
 #pragma region "Config"
 #endif
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// Config
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Includes required for macros defined below. You can remove/replace them if you modify the macros.
 #include <vector>   // for HSM_STD_VECTOR
@@ -96,8 +99,11 @@ typedef void Owner;
 #endif
 
 #ifdef _MSC_VER
-#pragma region "Rtti"
+#pragma region "RTTI"
 #endif
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// RTTI
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #if HSM_CPP_RTTI
 
@@ -106,7 +112,7 @@ typedef void Owner;
 namespace hsm {
 
 // We use standard C++ RTTI
-	
+
 // We need a copyable wrapper around std::type_info since std::type_info is non-copyable
 struct StateTypeIdStorage
 {
@@ -175,12 +181,15 @@ StateTypeId GetStateType()
 #endif // !HSM_CPP_RTTI
 
 #ifdef _MSC_VER
-#pragma endregion "Rtti"
+#pragma endregion "RTTI"
 #endif
 
 #ifdef _MSC_VER
 #pragma region "Utils"
 #endif
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// Utils
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace hsm {
 namespace util {
@@ -251,7 +260,7 @@ public:
 	{
 		return mObject;
 	}
-	
+
 	const T* operator->() const
 	{
 		return mObject;
@@ -261,7 +270,7 @@ public:
 	{
 		return *mObject;
 	}
-	
+
 	const T& operator*() const
 	{
 		return *mObject;
@@ -328,6 +337,9 @@ private:
 #ifdef _MSC_VER
 #pragma region "Transition"
 #endif
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// Transition
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace hsm {
 
@@ -477,7 +489,7 @@ struct Transition
 	}
 
 	Transition::Type GetTransitionType() const { return mTransitionType; }
-	StateTypeId GetTargetStateType() const { HSM_ASSERT(mStateFactory != 0); return mStateFactory->GetStateType(); }	
+	StateTypeId GetTargetStateType() const { HSM_ASSERT(mStateFactory != 0); return mStateFactory->GetStateType(); }
 	const StateFactory& GetStateFactory() const { HSM_ASSERT(mStateFactory != 0); return *mStateFactory; }
 
 	hsm_bool IsSibling() const { return mTransitionType == Sibling; }
@@ -591,14 +603,15 @@ inline Transition NoTransition()
 #ifdef _MSC_VER
 #pragma region "State"
 #endif
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// State
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace hsm {
 
 class StateMachine;
 
-///////////////////////////////////////////////////////////////////////////////
-// StateValues
-///////////////////////////////////////////////////////////////////////////////
+// StateValue
 
 template <typename T>
 struct ConcreteStateValueResetter;
@@ -654,15 +667,13 @@ struct ConcreteStateValueResetter : StateValueResetter
 	T mOrigValue;
 };
 
+
+// State
+
 namespace detail
 {
 	void InitState(State* state, StateMachine* ownerStateMachine, size_t stackDepth);
 }
-
-
-///////////////////////////////////////////////////////////////////////////////
-// State
-///////////////////////////////////////////////////////////////////////////////
 
 struct State
 {
@@ -684,7 +695,7 @@ struct State
 	const hsm_char* GetStateDebugName() const { return mStateDebugName; }
 
 	// Accessors
-	StateMachine& GetStateMachine() { HSM_ASSERT(mOwnerStateMachine != 0); return *mOwnerStateMachine; }	
+	StateMachine& GetStateMachine() { HSM_ASSERT(mOwnerStateMachine != 0); return *mOwnerStateMachine; }
 	const StateMachine& GetStateMachine() const { HSM_ASSERT(mOwnerStateMachine != 0); return *mOwnerStateMachine; }
 
 	// Searches for state on stack from outermost to innermost, returns NULL if not found
@@ -758,13 +769,13 @@ struct State
 	// Also note that the function does not need to be virtual as the state machine invokes it
 	// directly on the most-derived type (not polymorphically); however, we make it virtual for consistency.
 	virtual void OnEnter() {}
-	
+
 	// If state expects StateArgs, the overridden version should look like this
 	//virtual void OnEnter(const Args& args);
 
 	// OnExit is invoked just before a State is destroyed
 	virtual void OnExit() {}
-	
+
 	// Called by StateMachine::ProcessStateTransitions from outermost to innermost state, repeatedly until
 	// the state stack has settled (i.e. all states return NoTransition). Override this function to return
 	// a state to transition to, or NoTransition to remain in this state. Generally, this function should avoid
@@ -828,16 +839,14 @@ private:
 	StateMachine* mOwnerStateMachine;
 	size_t mStackDepth; // Depth of this state instance on the stack
 	StateValueResetterList mStateValueResetters;
-	
+
 	// Values cached to avoid virtual call, especially since the values are constant
 	StateTypeIdStorage mStateTypeId;
 	const hsm_char* mStateDebugName;
 };
 
 
-///////////////////////////////////////////////////////////////////////////////
 // StateWithOwner
-///////////////////////////////////////////////////////////////////////////////
 
 // Class that clients can use instead of deriving directly from State that provides convenient
 // typed access to the Owner. This class can also be chained via the StateBaseType parameter,
@@ -861,9 +870,8 @@ struct StateWithOwner : StateBaseType
 	}
 };
 
-
 // Implemented here because this function requires State to be fully defined (i.e. a complete type)
-template <typename TargetState> 
+template <typename TargetState>
 void ConcreteStateFactory<TargetState>::InvokeStateOnEnter(State* state, const StateArgs* stateArgs) const
 {
 		// We select which functor to call at compile-time so that only states that expect StateArgs are required to implement
@@ -882,6 +890,9 @@ void ConcreteStateFactory<TargetState>::InvokeStateOnEnter(State* state, const S
 #ifdef _MSC_VER
 #pragma region "StateMachine"
 #endif
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// StateMachine
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace hsm {
 
@@ -948,7 +959,7 @@ public:
 	// Debug tracing
 	void SetDebugInfo(const hsm_char* name, TraceLevel::Type traceLevel);
 	void SetDebugName(const hsm_char* name);
-	const hsm_char* GetDebugName() const { return mDebugName; }	
+	const hsm_char* GetDebugName() const { return mDebugName; }
 	void SetDebugTraceLevel(TraceLevel::Type trace) { mDebugTraceLevel = trace; }
 	TraceLevel::Type GetDebugTraceLevel() const { return mDebugTraceLevel; }
 
@@ -1008,10 +1019,10 @@ public:
 
 	//@DEPRECATED: Use SetDebugInfo(const hsm_char*, TraceLevel::Type)
 	void SetDebugInfo(const hsm_char* name, size_t level) { SetDebugName(name); SetDebugLevel(level); }
-	
+
 	//@DEPRECATED: Use SetDebugTraceLevel
 	void SetDebugLevel(size_t level) { SetDebugTraceLevel(static_cast<TraceLevel::Type>(level)); }
-	
+
 	//@DEPRECATED: Use GetDebugTraceLevel
 	size_t GetDebugLevel() { return static_cast<size_t>(GetDebugTraceLevel()); }
 
@@ -1049,7 +1060,7 @@ private:
 
 	typedef std::map<const StateFactory*, const StateFactory*> OverrideMap;
 	OverrideMap mStateOverrides;
-	
+
 	hsm_char mDebugName[HSM_DEBUG_NAME_MAXLEN];
 	TraceLevel::Type mDebugTraceLevel;
 };
@@ -1269,7 +1280,7 @@ inline void StateMachine::UpdateStates(HSM_STATE_UPDATE_ARGS)
 }
 
 inline State* StateMachine::GetState(StateTypeId stateType)
-{	
+{
 	for (size_t i = 0; i < mStateStack.size(); ++i)
 	{
 		State* state = mStateStack[i];
