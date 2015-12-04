@@ -1,6 +1,6 @@
 // state_args.cpp
 
-#include "hsm/statemachine.h"
+#include "hsm.h"
 
 using namespace hsm;
 

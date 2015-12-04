@@ -1,7 +1,7 @@
 // update_states.cpp
 
 #include <cstdio>
-#include "hsm/statemachine.h"
+#include "hsm.h"
 using namespace hsm;
 
 bool gPlaySequence = false;

@@ -1,6 +1,6 @@
 // drawing_hsms_clusters.cpp
 
-#include "hsm/statemachine.h"
+#include "hsm.h"
 
 using namespace hsm;
 

@@ -16,30 +16,12 @@
     <ClCompile Include="Player.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\statemachine.cpp">
-      <Filter>hsm</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Player.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\hsm\config.h">
-      <Filter>hsm</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\hsm\rtti.h">
-      <Filter>hsm</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\hsm\state.h">
-      <Filter>hsm</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\hsm\statemachine.h">
-      <Filter>hsm</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\hsm\transition.h">
-      <Filter>hsm</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\hsm\utils.h">
+    <ClInclude Include="..\..\include\hsm.h">
       <Filter>hsm</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,6 +1,6 @@
 // simplest_state_machine.cpp
 
-#include "hsm/statemachine.h"
+#include "hsm.h"
 
 struct First : hsm::State
 {

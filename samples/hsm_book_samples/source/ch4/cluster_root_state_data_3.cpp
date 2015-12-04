@@ -1,6 +1,6 @@
 // cluster_root_state_data_3.cpp
 
-#include "hsm/statemachine.h"
+#include "hsm.h"
 
 using namespace hsm;
 
