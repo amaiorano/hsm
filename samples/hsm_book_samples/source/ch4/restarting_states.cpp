@@ -57,7 +57,7 @@ struct CharacterStates
 			if (Owner().mAttack)
 			{
 				// Start attack sequence with combo index 0
-				return SiblingTransition<Attack>( Attack::Args(0) );
+				return SiblingTransition<Attack>(0);
 			}
 
 			return InnerEntryTransition<Stand>();
@@ -88,17 +88,11 @@ struct CharacterStates
 
 	struct Attack : BaseState
 	{
-		struct Args : StateArgs
-		{
-			Args(int comboIndex) : mComboIndex(comboIndex) {}
-			int mComboIndex;
-		};
-
-		virtual void OnEnter(const Args& args)
+		virtual void OnEnter(int comboIndex)
 		{
 			Owner().mAttack = false;
 
-			mComboIndex = args.mComboIndex;
+			mComboIndex = comboIndex;
 
 			static const char* AttackAnim[] =
 			{
@@ -119,7 +113,7 @@ struct CharacterStates
 				&& Owner().mAnimComponent.PollEvent("CanChainCombo"))
 			{
 				// Restart state with next combo index
-				return SiblingTransition<Attack>( Attack::Args(mComboIndex + 1) );
+				return SiblingTransition<Attack>(mComboIndex + 1);
 			}
 
 			if (Owner().mAnimComponent.IsFinished())

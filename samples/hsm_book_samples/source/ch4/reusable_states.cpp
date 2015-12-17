@@ -48,26 +48,13 @@ struct CharacterStates
 
 	struct PlayAnim : BaseState
 	{
-		struct Args : StateArgs
+		virtual void OnEnter(const char* animName
+			, bool loop = true
+			, const Transition& doneTransition = SiblingTransition<PlayAnim_Done>()
+			)
 		{
-			Args(const char* animName
-				, bool loop = true
-				, const Transition& doneTransition = SiblingTransition<PlayAnim_Done>()
-				)
-				: animName(animName)
-				, loop(loop)
-				, doneTransition(doneTransition)
-			{}
-
-			const char* animName;
-			bool loop;
-			Transition doneTransition;
-		};
-
-		virtual void OnEnter(const Args& args)
-		{
-			Owner().mAnimComponent.PlayAnim(args.animName, args.loop);
-			mDoneTransition = args.doneTransition;
+			Owner().mAnimComponent.PlayAnim(animName, loop);
+			mDoneTransition = doneTransition;
 		}
 
 		virtual Transition GetTransition()
@@ -103,6 +90,9 @@ struct CharacterStates
 		}
 	};
 
+	template <typename T>
+	struct PrintType;
+
 	struct Attack : BaseState
 	{
 		virtual Transition GetTransition()
@@ -110,9 +100,10 @@ struct CharacterStates
 			if (IsInInnerState<PlayAnim_Done>())
 				return SiblingTransition<Stand>();
 
-			return InnerEntryTransition<PlayAnim>(PlayAnim::Args("Attack_1", false,
-				SiblingTransition<PlayAnim>(PlayAnim::Args("Attack_2", false,
-				SiblingTransition<PlayAnim>(PlayAnim::Args("Attack_3", false))))));
+			return InnerEntryTransition<PlayAnim>(
+				std::ref("Attack_1"), false, SiblingTransition<PlayAnim>(
+					std::ref("Attack_2"), false, SiblingTransition<PlayAnim>(
+						std::ref("Attack_3"), false)));
 		}
 	};
 };

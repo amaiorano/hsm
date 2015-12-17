@@ -45,20 +45,9 @@ struct CharacterStates
 
 	struct PlayAnim : BaseState
 	{
-		struct Args : StateArgs
+		virtual void OnEnter(const char* animName, bool loop = true, float blendTime = 0.2f, float rate = 1.0f)
 		{
-			Args(const char* animName, bool loop = true, float blendTime = 0.2f, float rate = 1.0f)
-				: animName(animName), loop(loop), blendTime(blendTime), rate(rate) {}
-
-			const char* animName;
-			bool loop;
-			float blendTime;
-			float rate;
-		};
-
-		virtual void OnEnter(const Args& args)
-		{
-			Owner().mAnimComponent.PlayAnim(args.animName, args.loop, args.blendTime, args.rate);
+			Owner().mAnimComponent.PlayAnim(animName, loop, blendTime, rate);
 		}
 
 		virtual Transition GetTransition()
@@ -90,7 +79,7 @@ struct CharacterStates
 			if (Owner().mMove)
 				return SiblingTransition<Move>();
 
-			return InnerEntryTransition<PlayAnim>(PlayAnim::Args("Anim_Stand"));
+			return InnerEntryTransition<PlayAnim>(std::ref("Anim_Stand"));
 		}
 	};
 
@@ -107,7 +96,7 @@ struct CharacterStates
 				return SiblingTransition<Jump>();
 			}
 
-			return InnerEntryTransition<PlayAnim>(PlayAnim::Args("Anim_Move"));
+			return InnerEntryTransition<PlayAnim>(std::ref("Anim_Move"));
 		}
 	};
 
@@ -118,7 +107,7 @@ struct CharacterStates
 			if (IsInInnerState<PlayAnim_Done>())
 				return SiblingTransition<Move>();
 
-			return InnerEntryTransition<PlayAnim>(PlayAnim::Args("Anim_Jump", false));
+			return InnerEntryTransition<PlayAnim>(std::ref("Anim_Jump"), false);
 		}
 	};
 };
