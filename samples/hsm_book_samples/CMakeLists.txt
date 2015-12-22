@@ -2,6 +2,10 @@ cmake_minimum_required (VERSION 2.6)
 
 project (hsm_book_samples)
 
+# Pass "-DHSM_DEBUG=ON" to CMake to enable debug features
+# Note that this gets automatically defined in MSVC Debug configurations because it defines _DEBUG
+option(HSM_DEBUG "Enable HSM debug features" OFF)
+
 if(MSVC)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP") # Multiprocessor build
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4 /WX") # Max warning level and error on warnings
@@ -28,6 +32,9 @@ function(add_chapter_samples CHAPTER_NAME)
 		message(STATUS "Adding project ${PROJ_NAME}")
 		add_executable("${PROJ_NAME}" ${SRC_FILE})
 		target_link_libraries("${PROJ_NAME}" hsm) # link against hsm lib
+		if(HSM_DEBUG)
+			target_compile_definitions("${PROJ_NAME}" PRIVATE HSM_DEBUG=1)
+		endif()			
 	endforeach(SRC_FILE)
 endfunction(add_chapter_samples)
 
