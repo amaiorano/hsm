@@ -29,8 +29,6 @@ struct CharacterStates
 
 	struct Alive : BaseState
 	{
-		DEFINE_HSM_STATE(Alive);
-
 		virtual Transition GetTransition()
 		{
 			if (Owner().IsHurt())
@@ -42,13 +40,10 @@ struct CharacterStates
 
 	struct Hurt : BaseState
 	{
-		DEFINE_HSM_STATE(Hurt);
 	};
 
 	struct Stand : BaseState
 	{
-		DEFINE_HSM_STATE(Stand);
-
 		virtual Transition GetTransition()
 		{
 			if (Owner().ShouldGetOnLadder())
@@ -60,8 +55,6 @@ struct CharacterStates
 
 	struct Ladder : BaseState
 	{
-		DEFINE_HSM_STATE(Ladder);
-
 		virtual Transition GetTransition()
 		{
 			return InnerEntryTransition<Ladder_GetOn>();
@@ -70,8 +63,6 @@ struct CharacterStates
 
 	struct Ladder_GetOn : BaseState
 	{
-		DEFINE_HSM_STATE(Ladder_GetOn);
-
 		virtual void OnEnter()
 		{
 			Owner().AttachToLadder();
@@ -85,8 +76,6 @@ struct CharacterStates
 
 	struct Ladder_OnLadder : BaseState
 	{
-		DEFINE_HSM_STATE(Ladder_OnLadder);
-
 		virtual Transition GetTransition()
 		{
 			if (Owner().ShouldGetOffLadder())
@@ -98,8 +87,6 @@ struct CharacterStates
 
 	struct Ladder_GetOff : BaseState
 	{
-		DEFINE_HSM_STATE(Ladder_GetOff);
-
 		virtual void OnEnter()
 		{
 			Owner().DetachFromLadder();
