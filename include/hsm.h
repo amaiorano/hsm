@@ -30,8 +30,13 @@
 #include <cstdio>   // for SNPRINTF
 #include <cstring>  // for STRNCPY
 
-#if _DEBUG
-#define HSM_DEBUG
+// Define HSM_DEBUG to 0 or 1 explicitly, otherwise it will be 1 if _DEBUG is defined
+#if !defined(HSM_DEBUG)
+#ifdef _DEBUG // MSVC defines this for Debug configurations
+#define HSM_DEBUG 1
+#else
+#define HSM_DEBUG 0
+#endif
 #endif
 
 // If set, even if the compiler has RTTI enabled, this will force the usage of the custom HSM RTTI system
@@ -1161,7 +1166,7 @@ inline const StateFactory& StateMachine::GetStateOverride()
 	return iter == mStateOverrides.end() ? sourceStateFactory : *iter->second;
 }
 
-#ifndef HSM_DEBUG
+#if !HSM_DEBUG
 	#define HSM_LOG(minLevel, numSpaces, printfArgs)
 	#define HSM_LOG_TRANSITION(minLevel, depth, transTypeStr, state)
 #else
