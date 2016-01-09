@@ -52,7 +52,7 @@ struct CharacterStates
 			if (Owner().mJump)
 			{
 				Owner().mJump = false;
-				return SiblingTransition(GetStateOverride<Jump>());
+				return SiblingTransition(GetStateOverride<Jump>(), 20);
 			}
 
 			return NoTransition();
@@ -67,9 +67,19 @@ struct CharacterStates
 		}
 	};
 
-	struct Jump : BaseState
+	struct JumpBase
 	{
-		virtual Transition GetTransition()
+		virtual void OnEnter(int height) = 0;
+	};
+
+	struct Jump : BaseState, JumpBase
+	{
+		void OnEnter(int height) override
+		{
+			(void)height;
+		}
+
+		Transition GetTransition() override
 		{
 			return SiblingTransition<Stand>();
 		}
@@ -118,9 +128,14 @@ struct HeroStates
 		}
 	};
 
-	struct Jump : BaseState
+	struct Jump : BaseState, CharacterStates::JumpBase
 	{
-		virtual Transition GetTransition()
+		void OnEnter(int height) override
+		{
+			(void)height;
+		}
+
+		Transition GetTransition() override
 		{
 			return SiblingTransition<CharacterStates::Stand>();
 		}

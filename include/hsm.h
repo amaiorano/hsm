@@ -242,9 +242,19 @@ private:
 template <typename TargetState>
 const StateFactory& GetStateFactory()
 {
+	static_assert(std::is_convertible<TargetState, State>::value, "TargetState must derive from hsm::State");
 	static ConcreteStateFactory<TargetState> instance;
 	return instance;
 }
+
+// Small wrapper used to carry the SourceState along with the StateFactory for a state override.
+// This allows us to provide an overload of transition functions that accept a state override with args.
+template <typename SourceState>
+struct StateOverride
+{
+	explicit StateOverride(const StateFactory& stateFactory) : mStateFactory(stateFactory) {}
+	const StateFactory& mStateFactory;
+};
 
 typedef std::function<void (State*)> OnEnterArgsFunc;
 
@@ -253,9 +263,11 @@ typedef std::function<void (State*)> OnEnterArgsFunc;
 template <typename TargetState, typename... Args>
 OnEnterArgsFunc GenerateOnEnterArgsFunc(Args&&... args)
 {
+	static_assert(std::is_convertible<TargetState, State>::value, "TargetState must derive from hsm::State");
+
 	// Purposely capture args by copy rather than by reference in case args are stack
 	// created on the stack. Use std::ref() to wrap args that do not need to be copied.
-	return [args...] (State* state) { ((TargetState*)state)->OnEnter(args...); };
+	return [args...] (State* state) { (static_cast<TargetState*>(state))->OnEnter(args...); };
 }
 
 // Transition objects are created via the free-standing transition functions below, and typically returned by
@@ -325,6 +337,11 @@ Transition SiblingTransition(Args&&... args)
 	return Transition(Transition::Sibling, GetStateFactory<TargetState>(), GenerateOnEnterArgsFunc<TargetState>(std::forward<Args>(args)...));
 }
 
+template <typename TargetState, typename... Args>
+Transition SiblingTransition(const StateOverride<TargetState>& stateOverride, Args&&... args)
+{
+	return Transition(Transition::Sibling, stateOverride.mStateFactory, GenerateOnEnterArgsFunc<TargetState>(std::forward<Args>(args)...));
+}
 
 // InnerTransition
 
@@ -345,6 +362,11 @@ Transition InnerTransition(Args&&... args)
 	return Transition(Transition::Inner, GetStateFactory<TargetState>(), GenerateOnEnterArgsFunc<TargetState>(std::forward<Args>(args)...));
 }
 
+template <typename TargetState, typename... Args>
+Transition InnerTransition(const StateOverride<TargetState>& stateOverride, Args&&... args)
+{
+	return Transition(Transition::Inner, stateOverride.mStateFactory, GenerateOnEnterArgsFunc<TargetState>(std::forward<Args>(args)...));
+}
 
 // InnerEntryTransition
 
@@ -363,6 +385,12 @@ template <typename TargetState, typename... Args>
 Transition InnerEntryTransition(Args&&... args)
 {
 	return Transition(Transition::InnerEntry, GetStateFactory<TargetState>(), GenerateOnEnterArgsFunc<TargetState>(std::forward<Args>(args)...));
+}
+
+template <typename TargetState, typename... Args>
+Transition InnerEntryTransition(const StateOverride<TargetState>& stateOverride, Args&&... args)
+{
+	return Transition(Transition::InnerEntry, stateOverride.mStateFactory, GenerateOnEnterArgsFunc<TargetState>(std::forward<Args>(args)...));
 }
 
 
@@ -563,8 +591,8 @@ struct State
 	// the state stack has settled (i.e. all states return NoTransition). Override this function to return
 	// a state to transition to, or NoTransition to remain in this state. Generally, this function should avoid
 	// side-effects (updating state) as it may be called several times on the same state per ProcessStateTransitions.
-	// Instead, it should read state to determine whether a transition should be made. For udpating, override
-	// the Update function.
+	// Instead, it should read state to determine whether a transition should be made. Override Update instead
+	// to update the current state.
 	virtual Transition GetTransition()
 	{
 		return NoTransition();
@@ -575,7 +603,7 @@ struct State
 	virtual void Update(HSM_STATE_UPDATE_ARGS) {}
 
 	template <typename SourceState>
-	const hsm::StateFactory& GetStateOverride();
+	StateOverride<SourceState> GetStateOverride();
 
 private:
 
@@ -913,9 +941,9 @@ inline const StateType* State::GetImmediateInnerState() const
 }
 
 template <typename SourceState>
-inline const StateFactory& State::GetStateOverride()
+inline StateOverride<SourceState> State::GetStateOverride()
 {
-	return GetStateMachine().GetStateOverride<SourceState>();
+	return StateOverride<SourceState>(GetStateMachine().GetStateOverride<SourceState>());
 }
 
 // Inline StateMachine function implementations
