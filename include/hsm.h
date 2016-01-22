@@ -253,6 +253,7 @@ template <typename SourceState>
 struct StateOverride
 {
 	explicit StateOverride(const StateFactory& stateFactory) : mStateFactory(stateFactory) {}
+	operator const StateFactory& () const { return mStateFactory; }
 	const StateFactory& mStateFactory;
 };
 
@@ -337,10 +338,10 @@ Transition SiblingTransition(Args&&... args)
 	return Transition(Transition::Sibling, GetStateFactory<TargetState>(), GenerateOnEnterArgsFunc<TargetState>(std::forward<Args>(args)...));
 }
 
-template <typename TargetState, typename... Args>
-Transition SiblingTransition(const StateOverride<TargetState>& stateOverride, Args&&... args)
+template <typename TargetState, typename T1, typename... Args>
+Transition SiblingTransition(const StateOverride<TargetState>& stateOverride, T1&& arg1, Args&&... args)
 {
-	return Transition(Transition::Sibling, stateOverride.mStateFactory, GenerateOnEnterArgsFunc<TargetState>(std::forward<Args>(args)...));
+	return Transition(Transition::Sibling, stateOverride.mStateFactory, GenerateOnEnterArgsFunc<TargetState>(std::forward<T1>(arg1), std::forward<Args>(args)...));
 }
 
 // InnerTransition
@@ -362,10 +363,10 @@ Transition InnerTransition(Args&&... args)
 	return Transition(Transition::Inner, GetStateFactory<TargetState>(), GenerateOnEnterArgsFunc<TargetState>(std::forward<Args>(args)...));
 }
 
-template <typename TargetState, typename... Args>
-Transition InnerTransition(const StateOverride<TargetState>& stateOverride, Args&&... args)
+template <typename TargetState, typename T1, typename... Args>
+Transition InnerTransition(const StateOverride<TargetState>& stateOverride, T1&& arg1, Args&&... args)
 {
-	return Transition(Transition::Inner, stateOverride.mStateFactory, GenerateOnEnterArgsFunc<TargetState>(std::forward<Args>(args)...));
+	return Transition(Transition::Inner, stateOverride.mStateFactory, GenerateOnEnterArgsFunc<TargetState>(std::forward<T1>(arg1), std::forward<Args>(args)...));
 }
 
 // InnerEntryTransition
@@ -387,10 +388,10 @@ Transition InnerEntryTransition(Args&&... args)
 	return Transition(Transition::InnerEntry, GetStateFactory<TargetState>(), GenerateOnEnterArgsFunc<TargetState>(std::forward<Args>(args)...));
 }
 
-template <typename TargetState, typename... Args>
-Transition InnerEntryTransition(const StateOverride<TargetState>& stateOverride, Args&&... args)
+template <typename TargetState, typename T1, typename... Args>
+Transition InnerEntryTransition(const StateOverride<TargetState>& stateOverride, T1&& arg1, Args&&... args)
 {
-	return Transition(Transition::InnerEntry, stateOverride.mStateFactory, GenerateOnEnterArgsFunc<TargetState>(std::forward<Args>(args)...));
+	return Transition(Transition::InnerEntry, stateOverride.mStateFactory, GenerateOnEnterArgsFunc<TargetState>(std::forward<T1>(arg1), std::forward<Args>(args)...));
 }
 
 
