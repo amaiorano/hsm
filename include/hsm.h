@@ -259,17 +259,54 @@ struct StateOverride
 
 typedef std::function<void (State*)> OnEnterArgsFunc;
 
-// Generates a lambda that will invoke TargetState::OnEnter with matching args.
-// We get a compiler-time error if a matching OnEnter is not found.
-template <typename TargetState, typename... Args>
-OnEnterArgsFunc GenerateOnEnterArgsFunc(Args&&... args)
-{
-	static_assert(std::is_convertible<TargetState, State>::value, "TargetState must derive from hsm::State");
+// MSVC 14 (VS 2015) doesn't handle generating lambdas that capture C-style arrays ("const T(&)[n]")
+// by value, emitting error "array initialization requires a brace-enclosed initializer list".
+// The most common case that this affects are immediate strings, so we work around this issue by
+// detecting this case and forwarding them as "const char*", which is safe since immediate strings
+// have global lifetime.
+#ifdef _MSC_VER
+#define DECAY_IMMEDIATE_STRINGS_WHEN_FORWARDING
+#endif
 
-	// Purposely capture args by copy rather than by reference in case args are stack
-	// created on the stack. Use std::ref() to wrap args that do not need to be copied.
-	return [args...] (State* state) { (static_cast<TargetState*>(state))->OnEnter(args...); };
-}
+namespace detail
+{
+	// Generates a lambda that will invoke TargetState::OnEnter with matching args.
+	// We get a compiler-time error if a matching OnEnter is not found.
+	template <typename TargetState, typename... Args>
+	OnEnterArgsFunc DoGenerateOnEnterArgsFunc(Args&&... args)
+	{
+		static_assert(std::is_convertible<TargetState, State>::value, "TargetState must derive from hsm::State");
+
+		// Purposely capture args by copy rather than by reference in case args are
+		// created on the stack. Use std::ref() to wrap args that do not need to be copied.
+		return [args...](State* state) { (static_cast<TargetState*>(state))->OnEnter(std::move(args)...); };
+	}
+
+	// Base case: do nothing
+	template <typename T>
+	T&& DecayIfImmediateString(T&& arg1)
+	{
+		return std::forward<T>(arg1);
+	}
+
+	// If immediate string, decay to const char*
+	template <size_t _Nx>
+	const char* DecayIfImmediateString(const char(&arr)[_Nx])
+	{
+		return static_cast<const char*>(arr);
+	}
+
+	template <typename TargetState, typename... Args>
+	OnEnterArgsFunc GenerateOnEnterArgsFunc(Args&&... args)
+	{
+#ifdef DECAY_IMMEDIATE_STRINGS_WHEN_FORWARDING
+		return DoGenerateOnEnterArgsFunc<TargetState>(DecayIfImmediateString(args)...);
+#else
+		return DoGenerateOnEnterArgsFunc<TargetState>(std::forward<Args>(args)...);
+#endif // DECAY_IMMEDIATE_STRINGS_WHEN_FORWARDING
+	}
+} // namespace detail
+
 
 // Transition objects are created via the free-standing transition functions below, and typically returned by
 // GetTransition. They can also be stored as data members, passed around, and returned later. They are meant
@@ -335,13 +372,13 @@ Transition SiblingTransition()
 template <typename TargetState, typename... Args>
 Transition SiblingTransition(Args&&... args)
 {
-	return Transition(Transition::Sibling, GetStateFactory<TargetState>(), GenerateOnEnterArgsFunc<TargetState>(std::forward<Args>(args)...));
+	return Transition(Transition::Sibling, GetStateFactory<TargetState>(), detail::GenerateOnEnterArgsFunc<TargetState>(std::forward<Args>(args)...));
 }
 
 template <typename TargetState, typename T1, typename... Args>
 Transition SiblingTransition(const StateOverride<TargetState>& stateOverride, T1&& arg1, Args&&... args)
 {
-	return Transition(Transition::Sibling, stateOverride.mStateFactory, GenerateOnEnterArgsFunc<TargetState>(std::forward<T1>(arg1), std::forward<Args>(args)...));
+	return Transition(Transition::Sibling, stateOverride.mStateFactory, detail::GenerateOnEnterArgsFunc<TargetState>(std::forward<T1>(arg1), std::forward<Args>(args)...));
 }
 
 // InnerTransition
@@ -360,13 +397,13 @@ Transition InnerTransition()
 template <typename TargetState, typename... Args>
 Transition InnerTransition(Args&&... args)
 {
-	return Transition(Transition::Inner, GetStateFactory<TargetState>(), GenerateOnEnterArgsFunc<TargetState>(std::forward<Args>(args)...));
+	return Transition(Transition::Inner, GetStateFactory<TargetState>(), detail::GenerateOnEnterArgsFunc<TargetState>(std::forward<Args>(args)...));
 }
 
 template <typename TargetState, typename T1, typename... Args>
 Transition InnerTransition(const StateOverride<TargetState>& stateOverride, T1&& arg1, Args&&... args)
 {
-	return Transition(Transition::Inner, stateOverride.mStateFactory, GenerateOnEnterArgsFunc<TargetState>(std::forward<T1>(arg1), std::forward<Args>(args)...));
+	return Transition(Transition::Inner, stateOverride.mStateFactory, detail::GenerateOnEnterArgsFunc<TargetState>(std::forward<T1>(arg1), std::forward<Args>(args)...));
 }
 
 // InnerEntryTransition
@@ -385,13 +422,13 @@ Transition InnerEntryTransition()
 template <typename TargetState, typename... Args>
 Transition InnerEntryTransition(Args&&... args)
 {
-	return Transition(Transition::InnerEntry, GetStateFactory<TargetState>(), GenerateOnEnterArgsFunc<TargetState>(std::forward<Args>(args)...));
+	return Transition(Transition::InnerEntry, GetStateFactory<TargetState>(), detail::GenerateOnEnterArgsFunc<TargetState>(std::forward<Args>(args)...));
 }
 
 template <typename TargetState, typename T1, typename... Args>
 Transition InnerEntryTransition(const StateOverride<TargetState>& stateOverride, T1&& arg1, Args&&... args)
 {
-	return Transition(Transition::InnerEntry, stateOverride.mStateFactory, GenerateOnEnterArgsFunc<TargetState>(std::forward<T1>(arg1), std::forward<Args>(args)...));
+	return Transition(Transition::InnerEntry, stateOverride.mStateFactory, detail::GenerateOnEnterArgsFunc<TargetState>(std::forward<T1>(arg1), std::forward<Args>(args)...));
 }
 
 
