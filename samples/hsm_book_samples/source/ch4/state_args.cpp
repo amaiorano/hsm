@@ -79,7 +79,7 @@ struct CharacterStates
 			if (Owner().mMove)
 				return SiblingTransition<Move>();
 
-			return InnerEntryTransition<PlayAnim>(std::ref("Anim_Stand"));
+			return InnerEntryTransition<PlayAnim>("Anim_Stand");
 		}
 	};
 
@@ -96,7 +96,7 @@ struct CharacterStates
 				return SiblingTransition<Jump>();
 			}
 
-			return InnerEntryTransition<PlayAnim>(std::ref("Anim_Move"));
+			return InnerEntryTransition<PlayAnim>("Anim_Move");
 		}
 	};
 
@@ -107,7 +107,7 @@ struct CharacterStates
 			if (IsInInnerState<PlayAnim_Done>())
 				return SiblingTransition<Move>();
 
-			return InnerEntryTransition<PlayAnim>(std::ref("Anim_Jump"), false);
+			return InnerEntryTransition<PlayAnim>("Anim_Jump", false);
 		}
 	};
 };

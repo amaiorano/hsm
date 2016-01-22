@@ -128,7 +128,7 @@ struct HeroStates
 			if (IsInInnerState<PlayAnim_Done>())
 				return SiblingTransition<Stand>();
 
-			return InnerEntryTransition<PlayAnim>(std::ref("Attack_1"), false);
+			return InnerEntryTransition<PlayAnim>("Attack_1", false);
 		}
 	};
 };
@@ -193,7 +193,7 @@ struct EnemyStates
 			if (IsInInnerState<PlayAnim_Done>())
 				return SiblingTransition<Stand>();
 
-			return InnerEntryTransition<PlayAnim>(std::ref("Attack_1"), false);
+			return InnerEntryTransition<PlayAnim>("Attack_1", false);
 		}
 	};
 };

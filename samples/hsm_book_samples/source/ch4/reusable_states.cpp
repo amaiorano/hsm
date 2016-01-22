@@ -101,9 +101,9 @@ struct CharacterStates
 				return SiblingTransition<Stand>();
 
 			return InnerEntryTransition<PlayAnim>(
-				std::ref("Attack_1"), false, SiblingTransition<PlayAnim>(
-					std::ref("Attack_2"), false, SiblingTransition<PlayAnim>(
-						std::ref("Attack_3"), false)));
+				"Attack_1", false, SiblingTransition<PlayAnim>(
+					"Attack_2", false, SiblingTransition<PlayAnim>(
+						"Attack_3", false)));
 		}
 	};
 };
