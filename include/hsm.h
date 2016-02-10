@@ -702,6 +702,9 @@ struct State
 	// Accessors
 	StateMachine& GetStateMachine() { HSM_ASSERT(mOwnerStateMachine != 0); return *mOwnerStateMachine; }
 	const StateMachine& GetStateMachine() const { HSM_ASSERT(mOwnerStateMachine != 0); return *mOwnerStateMachine; }
+	
+	Owner*& GetOwner() { return mOwner; }
+	Owner*const& GetOwner() const { return mOwner; }
 
 	// Searches for state on stack from outermost to innermost, returns NULL if not found
 	template <typename StateType>
@@ -842,6 +845,7 @@ private:
 	typedef HSM_STD_VECTOR<StateValueResetter*> StateValueResetterList;
 
 	StateMachine* mOwnerStateMachine;
+	Owner* mOwner; // Cached for performance and easier debugging
 	size_t mStackDepth; // Depth of this state instance on the stack
 	StateValueResetterList mStateValueResetters;
 
@@ -860,19 +864,26 @@ private:
 template <typename OwnerType, typename StateBaseType = State>
 struct StateWithOwner : StateBaseType
 {
-	using StateBaseType::GetStateMachine;
-	typedef StateWithOwner<OwnerType, StateBaseType> ThisType;
+	using State::GetStateMachine;
+	using State::GetOwner;
+
+	StateWithOwner() : mOwner(reinterpret_cast<OwnerType*&>(GetOwner())) {}
 
 	const OwnerType& Owner() const
 	{
-		HSM_ASSERT(GetStateMachine().GetOwner() != 0);
-		return *static_cast<const OwnerType*>(GetStateMachine().GetOwner());
+		HSM_ASSERT(mOwner);
+		return *mOwner;
 	}
 
 	OwnerType& Owner()
 	{
-		return const_cast<OwnerType&>( const_cast<const ThisType*>(this)->Owner() );
+		HSM_ASSERT(mOwner);
+		return *mOwner;
 	}
+
+private:
+	// Hide base class member with one who's type is OwnerType*, rather than void*. Also helpful when debugging.
+	OwnerType* const& mOwner;
 };
 
 // Implemented here because this function requires State to be fully defined (i.e. a complete type)
@@ -976,7 +987,7 @@ public:
 	// work. Will invoke Update() on each state, from outermost to innermost.
 	void UpdateStates(HSM_STATE_UPDATE_ARGS);
 
-	// Owner accessors
+	// Owner accessors (may return NULL)
 	Owner* GetOwner() { return mOwner; }
 	const Owner* GetOwner() const { return mOwner; }
 
@@ -1180,6 +1191,7 @@ namespace detail
 	{
 		HSM_ASSERT(ownerStateMachine != 0);
 		state->mOwnerStateMachine = ownerStateMachine;
+		state->mOwner = ownerStateMachine->GetOwner();
 		state->mStackDepth = stackDepth;
 		state->mStateTypeId = state->DoGetStateType();
 		state->mStateDebugName = state->DoGetStateDebugName();
