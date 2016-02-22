@@ -1,0 +1,2 @@
+# CMake builds should be created in build* subdirectories, which we ignore
+build*/
