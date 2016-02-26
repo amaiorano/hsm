@@ -9,7 +9,14 @@
 #define CONCAT(a, b) _CONCAT(a, b)
 #define UNIQUE_NAMESPACE_NAME CONCAT(NS_, __COUNTER__)
 
-namespace detail
+struct NullType {};
+
+bool IsStateStackEmpty(hsm::StateMachine& sm)
+{
+	return sm.BeginOuterToInner() == sm.EndOuterToInner();
+}
+
+namespace util_detail
 {
 	using namespace hsm;
 
@@ -48,18 +55,44 @@ namespace detail
 
 		return EqualsStateStack<Second, Rest...>(iter, end);
 	}
+
+	template <typename Only>
+	struct EqualsStateStackSelector
+	{
+		static bool Exec(hsm::StateMachine& sm)
+		{
+			return util_detail::EqualsStateStack<Only>(sm.BeginOuterToInner(), sm.EndOuterToInner());
+		}
+	};
+
+	template <>
+	struct EqualsStateStackSelector<NullType>
+	{
+		static bool Exec(hsm::StateMachine& sm)
+		{
+			return IsStateStackEmpty(sm);
+		}
+	};
+
+	template <typename Only>
+	bool EqualsStateStack(hsm::StateMachine& sm)
+	{
+		return EqualsStateStackSelector<Only>::Exec(sm);
+	}
 }
 
-template <typename Only>
+//@NOTE: With C++11 we can use default template args on function templates. For now,
+// call-sites must pass NullType explicitly to test against empty state stack.
+template <typename Only /*= NullType*/>
 bool EqualsStateStack(hsm::StateMachine& sm)
 {
-	return ::detail::EqualsStateStack<Only>(sm.BeginOuterToInner(), sm.EndOuterToInner());
+	return util_detail::EqualsStateStack<Only>(sm);
 }
 
 template <typename First, typename Second, typename... Rest>
 bool EqualsStateStack(hsm::StateMachine& sm)
 {
-	return ::detail::EqualsStateStack<First, Second, Rest...>(sm.BeginOuterToInner(), sm.EndOuterToInner());
+	return util_detail::EqualsStateStack<First, Second, Rest...>(sm.BeginOuterToInner(), sm.EndOuterToInner());
 }
 
 std::string GetStateStackAsString(hsm::StateMachine& sm)
@@ -73,9 +106,4 @@ std::string GetStateStackAsString(hsm::StateMachine& sm)
 	}
 	result += "]";
 	return result;
-}
-
-bool IsStateStackEmpty(hsm::StateMachine& sm)
-{
-	return sm.BeginOuterToInner() == sm.EndOuterToInner();
 }

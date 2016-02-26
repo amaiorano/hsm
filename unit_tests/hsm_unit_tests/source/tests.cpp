@@ -6,12 +6,12 @@ struct MyStates
 {
 	struct A : State
 	{
-		Transition GetTransition() { return InnerEntryTransition<B>(); }
+		virtual Transition GetTransition() { return InnerEntryTransition<B>(); }
 	};
 
 	struct B : State
 	{
-		Transition GetTransition() { return InnerEntryTransition<C>(); }
+		virtual Transition GetTransition() { return InnerEntryTransition<C>(); }
 	};
 
 	struct C : State
@@ -47,22 +47,21 @@ TEST_CASE("statemachine/initializeshutdown", "[statemachine]")
 } // namespace
 
 namespace UNIQUE_NAMESPACE_NAME {
+int count = 0;
 struct MyStates
 {
-	static int count;
-
 	struct A : State
 	{
 		void OnEnter() { ++count; }
 		void OnExit() { --count; }
-		Transition GetTransition() { return InnerEntryTransition<B>(); }
+		virtual Transition GetTransition() { return InnerEntryTransition<B>(); }
 	};
 
 	struct B : State
 	{
 		void OnEnter() { ++count; }
 		void OnExit() { --count; }
-		Transition GetTransition() { return InnerEntryTransition<C>(); }
+		virtual Transition GetTransition() { return InnerEntryTransition<C>(); }
 	};
 
 	struct C : State
@@ -71,68 +70,152 @@ struct MyStates
 		void OnExit() { --count; }
 	};
 };
-
-int MyStates::count = 0;
 
 TEST_CASE("statemachine/shutdown", "[statemachine]")
 {
 	using namespace hsm;
 	StateMachine stateMachine;
 	stateMachine.Initialize<MyStates::A>();
-	REQUIRE(MyStates::count == 0);
+	REQUIRE(count == 0);
 	stateMachine.ProcessStateTransitions();
-	REQUIRE(MyStates::count == 3);
+	REQUIRE(count == 3);
 	stateMachine.ProcessStateTransitions();
-	REQUIRE(MyStates::count == 3);
+	REQUIRE(count == 3);
 	stateMachine.Shutdown(); // stop arg is true by default, OnExit will get called on all states
-	REQUIRE(MyStates::count == 0);
+	REQUIRE(count == 0);
 
 	stateMachine.Initialize<MyStates::A>();
 	stateMachine.ProcessStateTransitions();
-	REQUIRE(MyStates::count == 3);
+	REQUIRE(count == 3);
 	stateMachine.Shutdown(false); // OnExit will not be called on state stack
-	REQUIRE(MyStates::count == 3);
+	REQUIRE(count == 3);
 }
 } // namespace
 
 
 namespace UNIQUE_NAMESPACE_NAME {
+
+int count = 0;
+
 struct MyStates
 {
-	static int count;
-
 	struct A : State
 	{
-		Transition GetTransition() { return InnerEntryTransition<B>(); }
-		void Update() { ++count; }
+		virtual Transition GetTransition() { return InnerEntryTransition<B>(); }
+		virtual void Update() { ++count; }
 	};
 
 	struct B : State
 	{
-		Transition GetTransition() { return InnerEntryTransition<C>(); }
-		void Update() { ++count; }
+		virtual Transition GetTransition() { return InnerEntryTransition<C>(); }
+		virtual void Update() { ++count; }
 	};
 
 	struct C : State
 	{
-		void Update() { ++count; }
+		virtual void Update() { ++count; }
 	};
 };
-
-int MyStates::count = 0;
 
 TEST_CASE("statemachine/updatestates", "[statemachine]")
 {
 	StateMachine stateMachine;
 	stateMachine.Initialize<MyStates::A>();
-	REQUIRE(MyStates::count == 0);
+	REQUIRE(count == 0);
 	stateMachine.ProcessStateTransitions();
-	REQUIRE(MyStates::count == 0);
+	REQUIRE(count == 0);
 	stateMachine.UpdateStates();
-	REQUIRE(MyStates::count == 3);
+	REQUIRE(count == 3);
 	stateMachine.UpdateStates();
-	REQUIRE(MyStates::count == 3*2);
+	REQUIRE(count == 3*2);
 	stateMachine.Shutdown();
-	REQUIRE(MyStates::count == 3 * 2);
+	REQUIRE(count == 3 * 2);
+}
+}
+
+namespace UNIQUE_NAMESPACE_NAME {
+
+int whichInner = 0;
+bool gotoSiblingC1 = false;
+
+struct MyStates
+{
+	struct Root : State
+	{
+		virtual Transition GetTransition()
+		{
+			switch (whichInner)
+			{
+			case 0: return InnerTransition<A1>();
+			case 1: return InnerTransition<B1>();
+			default: FAIL();
+			}
+			return NoTransition();
+		}
+	};
+
+	struct A1 : State
+	{
+		virtual Transition GetTransition()
+		{
+			if (gotoSiblingC1)
+			{
+				gotoSiblingC1 = false;
+				return SiblingTransition<C1>();
+			}
+			return InnerEntryTransition<A2>();
+		}
+	};
+	struct A2 : State
+	{
+		virtual Transition GetTransition() { return InnerEntryTransition<A3>(); }
+	};
+	struct A3 : State
+	{
+	};
+
+	struct B1 : State
+	{
+		virtual Transition GetTransition() { return InnerEntryTransition<B2>(); }
+	};
+	struct B2 : State
+	{
+		virtual Transition GetTransition() { return InnerEntryTransition<B3>(); }
+	};
+	struct B3 : State
+	{
+	};
+
+	struct C1 : State
+	{
+	};
+};
+
+TEST_CASE("statemachine/innertransition", "[transitions]")
+{
+	StateMachine stateMachine;
+	stateMachine.Initialize<MyStates::Root>();
+	REQUIRE(whichInner == 0);
+
+	stateMachine.ProcessStateTransitions();
+	REQUIRE((EqualsStateStack<MyStates::Root, MyStates::A1, MyStates::A2, MyStates::A3>(stateMachine)));
+	REQUIRE(whichInner == 0);
+
+	whichInner = 1;
+	stateMachine.ProcessStateTransitions();
+	REQUIRE((EqualsStateStack<MyStates::Root, MyStates::B1, MyStates::B2, MyStates::B3>(stateMachine)));
+
+	whichInner = 0;
+	stateMachine.ProcessStateTransitions();
+	REQUIRE((EqualsStateStack<MyStates::Root, MyStates::A1, MyStates::A2, MyStates::A3>(stateMachine)));
+
+	// Test that despite A1 sibling to C1, Root will force A1 back via InnerTransition
+	gotoSiblingC1 = true;
+	stateMachine.ProcessStateTransitions();
+	REQUIRE_FALSE((EqualsStateStack<MyStates::Root, MyStates::C1>(stateMachine)));
+	REQUIRE((EqualsStateStack<MyStates::Root, MyStates::A1, MyStates::A2, MyStates::A3>(stateMachine)));
+
+	stateMachine.Shutdown();
+	REQUIRE((EqualsStateStack<NullType>(stateMachine)));
 }
 }
