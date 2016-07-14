@@ -1,7 +1,7 @@
 // state_onenter_onexit.cpp
 
 #include <cstdio>
-#include "hsm/statemachine.h"
+#include "hsm.h"
 using namespace hsm;
 
 struct MyStates

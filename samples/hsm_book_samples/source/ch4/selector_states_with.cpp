@@ -1,6 +1,6 @@
 // selector_states_with.cpp
 
-#include "hsm/statemachine.h"
+#include "hsm.h"
 
 using namespace hsm;
 

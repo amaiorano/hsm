@@ -76,17 +76,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\statemachine.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\include\hsm\config.h" />
-    <ClInclude Include="..\..\include\hsm\rtti.h" />
-    <ClInclude Include="..\..\include\hsm\state.h" />
-    <ClInclude Include="..\..\include\hsm\statemachine.h" />
-    <ClInclude Include="..\..\include\hsm\transition.h" />
-    <ClInclude Include="..\..\include\hsm\utils.h" />
+    <ClInclude Include="..\..\include\hsm.h" />
     <ClInclude Include="Player.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

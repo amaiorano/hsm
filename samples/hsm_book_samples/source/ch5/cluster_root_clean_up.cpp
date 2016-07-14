@@ -1,6 +1,6 @@
 // cluster_root_clean_up.cpp
 
-#include "hsm/statemachine.h"
+#include "hsm.h"
 
 using namespace hsm;
 

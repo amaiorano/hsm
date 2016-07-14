@@ -1,6 +1,6 @@
 // done_states.cpp
 
-#include "hsm/statemachine.h"
+#include "hsm.h"
 
 using namespace hsm;
 
