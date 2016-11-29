@@ -1,4 +1,21 @@
-= Version: 1.3 =
+= Version: 1.4 =
+
+== 1.4 ==
+- Improve state debugging by storing an mOwner member in StateWithOwner who's type is OwnerType* rather than void*
+- Improve HSM_DEBUG handling so that it can be defined explicitly to 0 or 1 externally (e.g. preprocessor define)
+- Add bash script to generate and build makefiles for clang and gcc on MSYS2
+- hsm_book_samples: add 'DHSM_DEBUG=ON/OFF' argument to CMake so it can be enabled more easily for non-MSVC builds
+- Improve .gitignore for book samples
+- Remove unnecessary DEFINE_HSM_STATE macros in chapter 5 sample
+- Merge branch 'single-include' into dev
+- Add section header comments and general clean up
+- Fix hsm_sample_basic_1 to build with single header hsm.h
+- Fix hsm_book_samples to build with single header hsm.h
+- Replace all headers and one cpp with single "hsm.h" header
+- Ignore .gitattributes when archiving
+- Use secure versions of snprintf and strncpy for MSVC
+- Rename intrusive_ptr to IntrusivePtr to make it clear that it's not a copy of boost::intrusive_ptr
+- Fix clang build by moving implementation of ConcreteStateFactory::InvokeStateOnEnter beneath State class
 
 == 1.3 ==
 - Add hsm_book_samples to go with [HSM Book](https://github.com/amaiorano/hsm/wiki)
