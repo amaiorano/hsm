@@ -135,7 +135,7 @@ void Character::Update()
 	// We can know if a state handled the event by having the default implementation in BaseState return
 	// VisitResult::Continue, and having states that handle the event return VisitResult::Stop.
 	PrintSeparator();
-	Event event{"test event"};
+	const Event event{"test event"};
 	VisitResult vr = mStateMachine.VisitInnerToOuter([&event](CharacterStates::BaseState& state) { return state.HandleEvent(event); });
 	printf("Event was %s\n", vr == VisitResult::Stop ? "handled" : "not handled");
 

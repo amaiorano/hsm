@@ -797,8 +797,9 @@ namespace detail
 	template<typename T>
 	using first_argument_type = typename std::tuple_element<0, typename function_traits<T>::argument_types>::type;
 
+	// If result_type of Func == ResultType, evaluates to ResultType
 	template <typename Func, typename ResultType>
-	using enable_if_result = typename std::enable_if<std::is_same<typename function_traits<Func>::result_type, ResultType>::value, ResultType>::type;
+	using enable_if_result = typename std::enable_if_t<std::is_same_v<typename function_traits<Func>::result_type, ResultType>, ResultType>;
 }
 
 // State stack types
@@ -893,16 +894,16 @@ public:
 	//   - void to visit all states on the stack; or
 	//   - VisitResult to allow visited function to decide whether to continue or stop visiting states.
 	template <typename Func>
-	detail::enable_if_result<Func, void> VisitOuterToInner(Func func);
+	detail::enable_if_result<Func, void> VisitOuterToInner(Func&& func);
 
 	template <typename Func>
-	detail::enable_if_result<Func, VisitResult> VisitOuterToInner(Func func);	
+	detail::enable_if_result<Func, VisitResult> VisitOuterToInner(Func&& func);
 
 	template <typename Func>
-	detail::enable_if_result<Func, void> VisitInnerToOuter(Func func);
+	detail::enable_if_result<Func, void> VisitInnerToOuter(Func&& func);
 	
 	template <typename Func>
-	detail::enable_if_result<Func, VisitResult> VisitInnerToOuter(Func func);
+	detail::enable_if_result<Func, VisitResult> VisitInnerToOuter(Func&& func);
 
 	// State stack iterators
 	OuterToInnerIterator BeginOuterToInner() { return mStateStack.begin(); }
@@ -1099,25 +1100,25 @@ namespace detail
 }
 
 template <typename Func>
-inline detail::enable_if_result<Func, void> StateMachine::VisitOuterToInner(Func func)
+inline detail::enable_if_result<Func, void> StateMachine::VisitOuterToInner(Func&& func)
 {
 	detail::VisitImpl(std::forward<Func>(func), BeginOuterToInner(), EndOuterToInner());
 }
 
 template <typename Func>
-inline detail::enable_if_result<Func, VisitResult> StateMachine::VisitOuterToInner(Func func)
+inline detail::enable_if_result<Func, VisitResult> StateMachine::VisitOuterToInner(Func&& func)
 {
 	return detail::VisitImpl(std::forward<Func>(func), BeginOuterToInner(), EndOuterToInner());
 }
 
 template <typename Func>
-inline detail::enable_if_result<Func, void> StateMachine::VisitInnerToOuter(Func func)
+inline detail::enable_if_result<Func, void> StateMachine::VisitInnerToOuter(Func&& func)
 {
 	detail::VisitImpl(std::forward<Func>(func), BeginInnerToOuter(), EndInnerToOuter());
 }
 
 template <typename Func>
-inline detail::enable_if_result<Func, VisitResult> StateMachine::VisitInnerToOuter(Func func)
+inline detail::enable_if_result<Func, VisitResult> StateMachine::VisitInnerToOuter(Func&& func)
 {
 	return detail::VisitImpl(std::forward<Func>(func), BeginInnerToOuter(), EndInnerToOuter());
 }
