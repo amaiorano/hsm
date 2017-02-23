@@ -799,7 +799,7 @@ namespace detail
 
 	// If result_type of Func == ResultType, evaluates to ResultType
 	template <typename Func, typename ResultType>
-	using enable_if_result = typename std::enable_if_t<std::is_same_v<typename function_traits<Func>::result_type, ResultType>, ResultType>;
+	using enable_if_result = typename std::enable_if<std::is_same<typename function_traits<Func>::result_type, ResultType>::value, ResultType>::type;
 }
 
 // State stack types
@@ -822,6 +822,13 @@ enum class VisitResult
 	Continue, // Continue visiting states
 	Stop      // Stop visiting states
 };
+
+template <typename T>
+using enable_if_memfun_t = typename std::enable_if<std::is_member_function_pointer<T>::value, int>::type;
+
+template <typename T>
+using disable_if_memfun_t = typename std::enable_if<!std::is_member_function_pointer<T>::value, int>::type;
+
 
 // The main interface to the hierarchical state machine; a single state machine
 // manages a stack of states.
@@ -893,17 +900,41 @@ public:
 	// - Returns either:
 	//   - void to visit all states on the stack; or
 	//   - VisitResult to allow visited function to decide whether to continue or stop visiting states.
-	template <typename Func>
+
+	template <typename Func, disable_if_memfun_t<Func> = 0>
 	detail::enable_if_result<Func, void> VisitOuterToInner(Func&& func);
 
-	template <typename Func>
-	detail::enable_if_result<Func, VisitResult> VisitOuterToInner(Func&& func);
+	//template <typename Func>
+	//detail::enable_if_result<Func, VisitResult> VisitOuterToInner(Func&& func);
 
-	template <typename Func>
-	detail::enable_if_result<Func, void> VisitInnerToOuter(Func&& func);
-	
-	template <typename Func>
-	detail::enable_if_result<Func, VisitResult> VisitInnerToOuter(Func&& func);
+	//template <typename Func>
+	//detail::enable_if_result<Func, void> VisitInnerToOuter(Func&& func);
+	//
+	//template <typename Func>
+	//detail::enable_if_result<Func, VisitResult> VisitInnerToOuter(Func&& func);
+
+
+	template <typename StateMemFun>
+	void VisitOuterToInner(StateMemFun memFunc, enable_if_memfun_t<StateMemFun> = 0)
+	{
+		auto p = std::mem_fun(memFunc);
+		using DerivedStateType = typename decltype(p)::argument_type;
+		for (auto iter = BeginOuterToInner(); iter != EndOuterToInner(); ++iter)
+		{
+			p(static_cast<DerivedStateType>(*iter));
+		}
+	}
+
+	template <typename StateMemFun>
+	void VisitInnerToOuter2(StateMemFun memFunc)
+	{
+		auto p = std::mem_fun(memFunc);
+		using DerivedStateType = typename decltype(p)::argument_type;
+		for (auto iter = BeginInnerToOuter(); iter != EndInnerToOuter(); ++iter)
+		{
+			p(static_cast<DerivedStateType>(*iter));
+		}
+	}
 
 	// State stack iterators
 	OuterToInnerIterator BeginOuterToInner() { return mStateStack.begin(); }
@@ -1099,29 +1130,33 @@ namespace detail
 	}
 }
 
-template <typename Func>
+#pragma warning(push)
+#pragma warning(disable: 4544) // 'unnamed-parameter': default template argument ignored on this template declaration
+
+template <typename Func, disable_if_memfun_t<Func>>
 inline detail::enable_if_result<Func, void> StateMachine::VisitOuterToInner(Func&& func)
 {
 	detail::VisitImpl(std::forward<Func>(func), BeginOuterToInner(), EndOuterToInner());
 }
+#pragma warning(pop)
 
-template <typename Func>
-inline detail::enable_if_result<Func, VisitResult> StateMachine::VisitOuterToInner(Func&& func)
-{
-	return detail::VisitImpl(std::forward<Func>(func), BeginOuterToInner(), EndOuterToInner());
-}
+//template <typename Func>
+//inline detail::enable_if_result<Func, VisitResult> StateMachine::VisitOuterToInner(Func&& func)
+//{
+//	return detail::VisitImpl(std::forward<Func>(func), BeginOuterToInner(), EndOuterToInner());
+//}
 
-template <typename Func>
-inline detail::enable_if_result<Func, void> StateMachine::VisitInnerToOuter(Func&& func)
-{
-	detail::VisitImpl(std::forward<Func>(func), BeginInnerToOuter(), EndInnerToOuter());
-}
-
-template <typename Func>
-inline detail::enable_if_result<Func, VisitResult> StateMachine::VisitInnerToOuter(Func&& func)
-{
-	return detail::VisitImpl(std::forward<Func>(func), BeginInnerToOuter(), EndInnerToOuter());
-}
+//template <typename Func>
+//inline detail::enable_if_result<Func, void> StateMachine::VisitInnerToOuter(Func&& func)
+//{
+//	detail::VisitImpl(std::forward<Func>(func), BeginInnerToOuter(), EndInnerToOuter());
+//}
+//
+//template <typename Func>
+//inline detail::enable_if_result<Func, VisitResult> StateMachine::VisitInnerToOuter(Func&& func)
+//{
+//	return detail::VisitImpl(std::forward<Func>(func), BeginInnerToOuter(), EndInnerToOuter());
+//}
 
 template <typename SourceState, typename TargetState>
 inline void StateMachine::AddStateOverride()
