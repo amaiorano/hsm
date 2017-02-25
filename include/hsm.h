@@ -742,66 +742,6 @@ private:
 
 namespace hsm {
 
-namespace detail
-{
-	// function_traits to get result and argument types of a function
-	// http://stackoverflow.com/questions/27879815/c11-get-type-of-first-second-etc-argument-similar-to-result-of
-
-	// primary template.
-	template<typename T>
-	struct function_traits
-	{
-		using result_type = typename function_traits<decltype(&T::operator())>::result_type;
-		using argument_types = typename function_traits<decltype(&T::operator())>::argument_types;
-	};
-
-	// partial specialization for function type
-	template<typename R, typename... Args>
-	struct function_traits<R(Args...)>
-	{
-		using result_type = R;
-		using argument_types = std::tuple<Args...>;
-	};
-
-	// partial specialization for function pointer
-	template<typename R, typename... Args>
-	struct function_traits<R(*)(Args...)>
-	{
-		using result_type = R;
-		using argument_types = std::tuple<Args...>;
-	};
-
-	// partial specialization for std::function
-	template<typename R, typename... Args>
-	struct function_traits<std::function<R(Args...)>>
-	{
-		using result_type = R;
-		using argument_types = std::tuple<Args...>;
-	};
-
-	// partial specialization for pointer-to-member-function (i.e., operator()'s)
-	template<typename T, typename R, typename... Args>
-	struct function_traits<R(T::*)(Args...)>
-	{
-		using result_type = R;
-		using argument_types = std::tuple<Args...>;
-	};
-
-	template<typename T, typename R, typename... Args>
-	struct function_traits<R(T::*)(Args...) const>
-	{
-		using result_type = R;
-		using argument_types = std::tuple<Args...>;
-	};
-
-	template<typename T>
-	using first_argument_type = typename std::tuple_element<0, typename function_traits<T>::argument_types>::type;
-
-	// If result_type of Func == ResultType, evaluates to ResultType
-	template <typename Func, typename ResultType>
-	using enable_if_result = typename std::enable_if<std::is_same<typename function_traits<Func>::result_type, ResultType>::value, ResultType>::type;
-}
-
 // State stack types
 typedef HSM_STD_VECTOR<State*> StackType;
 typedef StackType::iterator OuterToInnerIterator;
@@ -816,19 +756,6 @@ namespace TraceLevel
 		Diagnostic = 2
 	};
 };
-
-enum class VisitResult
-{
-	Continue, // Continue visiting states
-	Stop      // Stop visiting states
-};
-
-template <typename T>
-using enable_if_memfun_t = typename std::enable_if<std::is_member_function_pointer<T>::value, int>::type;
-
-template <typename T>
-using disable_if_memfun_t = typename std::enable_if<!std::is_member_function_pointer<T>::value, int>::type;
-
 
 // The main interface to the hierarchical state machine; a single state machine
 // manages a stack of states.
@@ -894,53 +821,27 @@ public:
 	Owner* GetOwner() { return mOwner; }
 	const Owner* GetOwner() const { return mOwner; }
 
-	// State stack visitor functions
-	// Expected function signature for Func (usually a lambda expression):
-	// - Single argument of type [const] hsm::State& OR a ref to your own hsm::State-derived type;
-	// - Returns either:
-	//   - void to visit all states on the stack; or
-	//   - VisitResult to allow visited function to decide whether to continue or stop visiting states.
-
-	template <typename Func, disable_if_memfun_t<Func> = 0>
-	detail::enable_if_result<Func, void> VisitOuterToInner(Func&& func);
-
-	//template <typename Func>
-	//detail::enable_if_result<Func, VisitResult> VisitOuterToInner(Func&& func);
-
-	//template <typename Func>
-	//detail::enable_if_result<Func, void> VisitInnerToOuter(Func&& func);
-	//
-	//template <typename Func>
-	//detail::enable_if_result<Func, VisitResult> VisitInnerToOuter(Func&& func);
-
-
-	template <typename StateMemFun>
-	void VisitOuterToInner(StateMemFun memFunc, enable_if_memfun_t<StateMemFun> = 0)
-	{
-		auto p = std::mem_fun(memFunc);
-		using DerivedStateType = typename decltype(p)::argument_type;
-		for (auto iter = BeginOuterToInner(); iter != EndOuterToInner(); ++iter)
-		{
-			p(static_cast<DerivedStateType>(*iter));
-		}
-	}
-
-	template <typename StateMemFun>
-	void VisitInnerToOuter2(StateMemFun memFunc)
-	{
-		auto p = std::mem_fun(memFunc);
-		using DerivedStateType = typename decltype(p)::argument_type;
-		for (auto iter = BeginInnerToOuter(); iter != EndInnerToOuter(); ++iter)
-		{
-			p(static_cast<DerivedStateType>(*iter));
-		}
-	}
-
 	// State stack iterators
 	OuterToInnerIterator BeginOuterToInner() { return mStateStack.begin(); }
 	OuterToInnerIterator EndOuterToInner() { return mStateStack.end(); }
 	InnerToOuterIterator BeginInnerToOuter() { return mStateStack.rbegin(); }
 	InnerToOuterIterator EndInnerToOuter() { return mStateStack.rend(); }
+
+	// State stack visitor functions
+	// Func should be "void (State&)" or "void (DerivedState&)"
+	template <typename StateMemFun, typename... Args>
+	void InvokeOuterToInner(StateMemFun&& memFunc, Args&&... args);
+
+	template <typename StateMemFun, typename... Args>
+	void InvokeInnerToOuter(StateMemFun&& memFunc, Args&&... args);
+
+	// State stack visitor functions
+	// Func should be "void (State&)" or "void (DerivedState&)"
+	template <typename Func>
+	void VisitOuterToInner(Func&& func);
+
+	template <typename Func>
+	void VisitInnerToOuter(Func&& func);
 
 	// State stack query functions
 
@@ -1103,60 +1004,108 @@ inline StateOverride<SourceState> State::GetStateOverride()
 
 namespace detail
 {
-	template <typename Func, typename IterType>
-	enable_if_result<Func, void> VisitImpl(Func&& func, IterType first, IterType last)
-	{
-		static_assert(std::is_convertible<first_argument_type<Func>, const hsm::State&>::value, "First argument must be State* or derived type");
+	// function_traits to get result and argument types of a function
+	// http://stackoverflow.com/questions/27879815/c11-get-type-of-first-second-etc-argument-similar-to-result-of
 
+	// primary template.
+	template<typename T>
+	struct function_traits
+	{
+		using class_type = T;
+		using result_type = typename function_traits<decltype(&T::operator())>::result_type;
+		using argument_types = typename function_traits<decltype(&T::operator())>::argument_types;
+	};
+
+	// partial specialization for function type
+	template<typename R, typename... Args>
+	struct function_traits<R(Args...)>
+	{
+		using result_type = R;
+		using argument_types = std::tuple<Args...>;
+	};
+
+	// partial specialization for function pointer
+	template<typename R, typename... Args>
+	struct function_traits<R(*)(Args...)>
+	{
+		using result_type = R;
+		using argument_types = std::tuple<Args...>;
+	};
+
+	// partial specialization for std::function
+	template<typename R, typename... Args>
+	struct function_traits<std::function<R(Args...)>>
+	{
+		using result_type = R;
+		using argument_types = std::tuple<Args...>;
+	};
+
+	// partial specialization for pointer-to-member-function (i.e., operator()'s)
+	template<typename T, typename R, typename... Args>
+	struct function_traits<R(T::*)(Args...)>
+	{
+		using class_type = T;
+		using result_type = R;
+		using argument_types = std::tuple<Args...>;
+	};
+
+	template<typename T, typename R, typename... Args>
+	struct function_traits<R(T::*)(Args...) const>
+	{
+		using class_type = T;
+		using result_type = R;
+		using argument_types = std::tuple<Args...>;
+	};
+
+	template<typename T>
+	using function_first_argument_t = typename std::tuple_element<0, typename function_traits<T>::argument_types>::type;
+
+	template <typename IterType, typename StateMemFun, typename... Args>
+	inline void InvokeImpl(IterType first, IterType last, StateMemFun memFunc, Args&&... args)
+	{
+		using DerivedStateType = typename function_traits<StateMemFun>::class_type;
+		static_assert(std::is_convertible<DerivedStateType, const hsm::State&>::value, "memFunc must be a member function of a State-derived type");
 		for (auto iter = first; iter != last; ++iter)
 		{
-			func(static_cast<first_argument_type<Func>>(**iter));
+			DerivedStateType* state = static_cast<DerivedStateType*>(*iter);
+			(state->*memFunc)(std::forward<Args>(args)...);
 		}
 	}
 
-	template <typename Func, typename IterType>
-	enable_if_result<Func, VisitResult> VisitImpl(Func&& func, IterType first, IterType last)
+	template <typename IterType, typename Func>
+	void VisitImpl(IterType first, IterType last, Func&& func)
 	{
-		static_assert(std::is_convertible<first_argument_type<Func>, const hsm::State&>::value, "First argument must be State* or derived type");
-
-		VisitResult result = VisitResult::Continue;
+		static_assert(std::is_convertible<function_first_argument_t<Func>, const hsm::State&>::value, "First argument must be State* or derived type");
 		for (auto iter = first; iter != last; ++iter)
 		{
-			result = func(static_cast<first_argument_type<Func>>(**iter));
-			if (result == VisitResult::Stop)
-				break;
+			func(static_cast<function_first_argument_t<Func>>(**iter));
 		}
-		return result;
 	}
 }
 
-#pragma warning(push)
-#pragma warning(disable: 4544) // 'unnamed-parameter': default template argument ignored on this template declaration
-
-template <typename Func, disable_if_memfun_t<Func>>
-inline detail::enable_if_result<Func, void> StateMachine::VisitOuterToInner(Func&& func)
+template <typename StateMemFun, typename... Args>
+inline void StateMachine::InvokeOuterToInner(StateMemFun&& memFunc, Args&&... args)
 {
-	detail::VisitImpl(std::forward<Func>(func), BeginOuterToInner(), EndOuterToInner());
+	detail::InvokeImpl(BeginOuterToInner(), EndOuterToInner(), std::forward<StateMemFun>(memFunc), std::forward<Args>(args)...);
 }
-#pragma warning(pop)
 
-//template <typename Func>
-//inline detail::enable_if_result<Func, VisitResult> StateMachine::VisitOuterToInner(Func&& func)
-//{
-//	return detail::VisitImpl(std::forward<Func>(func), BeginOuterToInner(), EndOuterToInner());
-//}
+template <typename StateMemFun, typename... Args>
+inline void StateMachine::InvokeInnerToOuter(StateMemFun&& memFunc, Args&&... args)
+{
+	detail::InvokeImpl(BeginInnerToOuter(), EndInnerToOuter(), std::forward<StateMemFun>(memFunc), std::forward<Args>(args)...);
+}
 
-//template <typename Func>
-//inline detail::enable_if_result<Func, void> StateMachine::VisitInnerToOuter(Func&& func)
-//{
-//	detail::VisitImpl(std::forward<Func>(func), BeginInnerToOuter(), EndInnerToOuter());
-//}
-//
-//template <typename Func>
-//inline detail::enable_if_result<Func, VisitResult> StateMachine::VisitInnerToOuter(Func&& func)
-//{
-//	return detail::VisitImpl(std::forward<Func>(func), BeginInnerToOuter(), EndInnerToOuter());
-//}
+template <typename Func>
+inline void StateMachine::VisitOuterToInner(Func&& func)
+{
+	detail::VisitImpl(BeginOuterToInner(), EndOuterToInner(), std::forward<Func>(func));
+}
+
+template <typename Func>
+inline void StateMachine::VisitInnerToOuter(Func&& func)
+{
+	detail::VisitImpl(BeginInnerToOuter(), EndInnerToOuter(), std::forward<Func>(func));
+}
 
 template <typename SourceState, typename TargetState>
 inline void StateMachine::AddStateOverride()

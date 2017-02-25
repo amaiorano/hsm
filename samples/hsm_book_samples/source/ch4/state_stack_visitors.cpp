@@ -2,6 +2,7 @@
 
 #include "hsm.h"
 #include <string>
+#include <memory>
 
 using namespace hsm;
 
@@ -25,42 +26,29 @@ struct CharacterStates
 {
 	struct BaseState : StateWithOwner<Character>
 	{
-		virtual void Baz()
-		{
-			printf("BaseState::Baz\n");
-		}
-
 		virtual void Foo(int /*a*/, float /*b*/)
 		{
-			printf("Not implemented on %s\n", GetStateDebugName());
+			printf("Foo: Not implemented on %s\n", GetStateDebugName());
 		}
 
-		virtual VisitResult Bar(int /*a*/) const
+		virtual void Bar(bool& /*keepVisiting*/, int /*a*/) const
 		{
-			printf("Not implemented on %s\n", GetStateDebugName());
-			return VisitResult::Continue;
+			printf("Bar: Not implemented on %s\n", GetStateDebugName());
 		}
 
-		virtual VisitResult HandleEvent(const Event& /*event*/)
+		virtual void HandleEvent(bool& /*handled*/, const Event& /*event*/)
 		{
-			printf("Not implemented on %s\n", GetStateDebugName());
-			return VisitResult::Continue;
+			printf("HandleEvent: Not implemented on %s\n", GetStateDebugName());
 		}
 
-		virtual VisitResult GetSomeValue(std::string& /*value*/)
+		virtual void GetSomeValue(std::unique_ptr<std::string>& /*value*/)
 		{
 			printf("Not implemented on %s\n", GetStateDebugName());
-			return VisitResult::Continue;
 		}
 	};
 
 	struct A : BaseState
 	{
-		void Baz() override
-		{
-			printf("A::Baz\n");
-		}
-
 		Transition GetTransition() override
 		{
 			return InnerEntryTransition<B>();
@@ -68,7 +56,7 @@ struct CharacterStates
 
 		void Foo(int /*a*/, float /*b*/) override
 		{
-			printf("Implemented on %s\n", GetStateDebugName());
+			printf("Foo: Implemented on %s\n", GetStateDebugName());
 		}
 	};
 
@@ -79,10 +67,16 @@ struct CharacterStates
 			return InnerEntryTransition<C>();
 		}
 
-		VisitResult Bar(int /*a*/) const override
+		void Bar(bool& keepVisiting, int /*a*/) const override
 		{
-			printf("Implemented on %s\n", GetStateDebugName());
-			return VisitResult::Stop;
+			printf("Bar: Implemented on %s\n", GetStateDebugName());
+			keepVisiting = false;
+		}
+
+		void HandleEvent(bool& handled, const Event& event) override
+		{
+			printf("HandleEvent: Implemented on %s - handled event: %s\n", GetStateDebugName(), event.name.c_str());
+			handled = true;
 		}
 	};
 
@@ -90,20 +84,13 @@ struct CharacterStates
 	{
 		void Foo(int /*a*/, float /*b*/) override
 		{
-			printf("Implemented on %s\n", GetStateDebugName());
+			printf("Foo: Implemented on %s\n", GetStateDebugName());
 		}
 
-		VisitResult HandleEvent(const Event& event) override
-		{
-			printf("Implemented on %s - handled event: %s\n", GetStateDebugName(), event.name.c_str());
-			return VisitResult::Stop;
-		}
-
-		VisitResult GetSomeValue(std::string& value) override
+		void GetSomeValue(std::unique_ptr<std::string>& value) override
 		{
 			printf("Implemented on %s\n", GetStateDebugName());
-			value = "Yay bacon!";
-			return VisitResult::Stop;
+			value = std::make_unique<std::string>("C's value");
 		}
 	};
 };
@@ -122,55 +109,61 @@ void Character::Update()
 	mStateMachine.ProcessStateTransitions();
 	mStateMachine.UpdateStates();
 
-	// Visit state stack tests
 	auto PrintSeparator = [] {printf("**********************************\n"); };
 
-	// Test calling a simple function, Foo, on each state
+	// Invoke member function on state stack tests
+
+	// Invoke virtual member function Foo on each state, passing in extra arguments
 	PrintSeparator();
-	mStateMachine.VisitOuterToInner([](CharacterStates::BaseState& state) { state.Foo(42, 24.0f); });
+	mStateMachine.InvokeOuterToInner(&CharacterStates::BaseState::Foo, 10, 2.4f);
 
 	PrintSeparator();
-	//mStateMachine.VisitInnerToOuter([](CharacterStates::BaseState& state) { state.Foo(42, 24.0f); });
+	mStateMachine.InvokeInnerToOuter(&CharacterStates::BaseState::Foo, 10, 2.4f);
 
-	// Test calling const function, Bar, which returns VisitResult. Implemented only in B, which stops
-	// the visiting.
+	// Visit state stack tests
+
+	// Call a simple function, Foo, on each state
 	PrintSeparator();
-	//mStateMachine.VisitOuterToInner(
-	//	[](const CharacterStates::BaseState& state) { return state.Bar(42); });
+	mStateMachine.VisitOuterToInner(
+		[](CharacterStates::BaseState& state) { state.Foo(42, 24.0f); });
 
 	PrintSeparator();
-	//mStateMachine.VisitInnerToOuter(
-	//	[](const CharacterStates::BaseState& state) { return state.Bar(42); });
+	mStateMachine.VisitInnerToOuter(
+		[](CharacterStates::BaseState& state) { state.Foo(42, 24.0f); });
+
+	// Call Bar to which we pass an argument to know whether to keep visiting
+	PrintSeparator();
+	mStateMachine.VisitOuterToInner(
+		[keepVisiting = true](const CharacterStates::BaseState& state) mutable
+		{ if (keepVisiting) state.Bar(keepVisiting, 42); });
+
+	PrintSeparator();
+	mStateMachine.VisitInnerToOuter(
+		[keepVisiting = true](const CharacterStates::BaseState& state) mutable
+		{ if (keepVisiting) state.Bar(keepVisiting, 42); });
 
 	// More realistic example: we want to send some kind of event to our state stack, in case a state cares.
 	// Usually we send this from inner to outer, which mimics virtual dispatch.
-	// We can know if a state handled the event by having the default implementation in BaseState return
-	// VisitResult::Continue, and having states that handle the event return VisitResult::Stop.
 	PrintSeparator();
 	const Event event{"test event"};
-	//VisitResult vr = mStateMachine.VisitInnerToOuter(
-	//	[&event](CharacterStates::BaseState& state) { return state.HandleEvent(event); });
-	//printf("Event was %s\n", vr == VisitResult::Stop ? "handled" : "not handled");
+	bool handled = false;
+	mStateMachine.VisitInnerToOuter(
+		[&handled, &event](CharacterStates::BaseState& state)
+		{ if (!handled) return state.HandleEvent(handled, event); });
+	printf("Event was %s\n", handled ? "handled" : "not handled");
 
-	// We can have the state stack return values via a reference parameter, using VisitResult once again to
-	// communicate if a state actually did or not.
+	// We can have the state stack return values via a reference parameter. Here we use an unset unique_ptr
+	// that is optionally set to a value by a state. Note that with C++17 support, std::optional would be a
+	// better choice.
 	PrintSeparator();
-	std::string value;
-	//vr = mStateMachine.VisitOuterToInner(
-	//	[&value](CharacterStates::BaseState& state) { return state.GetSomeValue(value); });
-	//if (vr == VisitResult::Stop)
-	//{
-	//	printf("Value was returned: %s\n", value.c_str());
-	//}
-
-	//std::function
-
-	//auto p = std::mem_fun(&CharacterStates::BaseState::Baz);
-	//p( static_cast<decltype(p)::argument_type>( *mStateMachine.BeginInnerToOuter() ));
-
-	mStateMachine.VisitOuterToInner(&CharacterStates::BaseState::Baz);
-	//PrintSeparator();
-	//mStateMachine.VisitInnerToOuter2(&CharacterStates::BaseState::Baz);
+	std::unique_ptr<std::string> value;
+	mStateMachine.VisitOuterToInner(
+		[&value](CharacterStates::BaseState& state)
+		{ if (!value) state.GetSomeValue(value); });
+	if (value)
+	{
+		printf("Value was returned: %s\n", value->c_str());
+	}
 }
 
 int main()
