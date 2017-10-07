@@ -1,4 +1,7 @@
-= Version: 1.4 =
+= Version: 1.5 =
+
+== 1.5 ==
+- Improve StateArgs mechanism to make use of C++11 variadic template arguments
 
 == 1.4 ==
 - Improve state debugging by storing an mOwner member in StateWithOwner who's type is OwnerType* rather than void*
