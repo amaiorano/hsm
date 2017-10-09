@@ -307,7 +307,13 @@ namespace detail
 
 		// Purposely capture args by copy rather than by reference in case args are
 		// created on the stack. Use std::ref() to wrap args that do not need to be copied.
-		return [args...](State* state) { (static_cast<TargetState*>(state))->OnEnter(std::move(args)...); };
+		return [args...](State* state)
+		{ 
+			HSM_ASSERT_MSG(state->GetStateType() == GetStateType<TargetState>(), 
+				"Type of state to call OnEnter on doesn't match original target state returned by transition");
+
+			static_cast<TargetState*>(state)->OnEnter(std::move(args)...); 
+		};
 	}
 
 	// Base case: do nothing
@@ -358,7 +364,7 @@ struct Transition
 	}
 
 	// Transition with state args
-	Transition(Transition::Type transitionType, const StateFactory& stateFactory, OnEnterArgsFunc&& onEnterArgsFunc)
+	Transition(Transition::Type transitionType, const StateFactory& stateFactory, OnEnterArgsFunc onEnterArgsFunc)
 		: mTransitionType(transitionType)
 		, mStateFactory(&stateFactory)
 		, mOnEnterArgsFunc(std::move(onEnterArgsFunc))
