@@ -370,11 +370,11 @@ Transition SiblingTransition(Args&&... args)
 	return Transition(Transition::Sibling, GetStateFactory<TargetState>(), detail::GenerateOnEnterArgsFunc<TargetState>(std::forward<Args>(args)...));
 }
 
+// Deprecated after v1.5 upon realizing that it's not possible to bind to the correct OnEnter for state
+// overrides since the actual target state is not known at compile time, but rather at runtime.
 template <typename TargetState, typename T1, typename... Args>
-Transition SiblingTransition(const StateOverride<TargetState>& stateOverride, T1&& arg1, Args&&... args)
-{
-	return Transition(Transition::Sibling, stateOverride.mStateFactory, detail::GenerateOnEnterArgsFunc<TargetState>(std::forward<T1>(arg1), std::forward<Args>(args)...));
-}
+HSM_DEPRECATED("Passing state args to state overrides is not supported")
+Transition SiblingTransition(const StateOverride<TargetState>& stateOverride, T1&& arg1, Args&&... args);
 
 // InnerTransition
 
@@ -396,10 +396,8 @@ Transition InnerTransition(Args&&... args)
 }
 
 template <typename TargetState, typename T1, typename... Args>
-Transition InnerTransition(const StateOverride<TargetState>& stateOverride, T1&& arg1, Args&&... args)
-{
-	return Transition(Transition::Inner, stateOverride.mStateFactory, detail::GenerateOnEnterArgsFunc<TargetState>(std::forward<T1>(arg1), std::forward<Args>(args)...));
-}
+HSM_DEPRECATED("Passing state args to state overrides is not supported") // See details on SiblingTransition version
+Transition InnerTransition(const StateOverride<TargetState>& stateOverride, T1&& arg1, Args&&... args);
 
 // InnerEntryTransition
 
@@ -421,11 +419,8 @@ Transition InnerEntryTransition(Args&&... args)
 }
 
 template <typename TargetState, typename T1, typename... Args>
-Transition InnerEntryTransition(const StateOverride<TargetState>& stateOverride, T1&& arg1, Args&&... args)
-{
-	return Transition(Transition::InnerEntry, stateOverride.mStateFactory, detail::GenerateOnEnterArgsFunc<TargetState>(std::forward<T1>(arg1), std::forward<Args>(args)...));
-}
-
+HSM_DEPRECATED("Passing state args to state overrides is not supported") // See details on SiblingTransition version
+Transition InnerEntryTransition(const StateOverride<TargetState>& stateOverride, T1&& arg1, Args&&... args);
 
 // NoTransition
 
