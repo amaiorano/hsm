@@ -287,60 +287,11 @@ struct StateOverride
 
 typedef std::function<void (State*)> OnEnterArgsFunc;
 
-// MSVC 14 (VS 2015) doesn't handle generating lambdas that capture C-style arrays ("const T(&)[n]")
-// by value, emitting error "array initialization requires a brace-enclosed initializer list".
-// The most common case that this affects are immediate strings, so we work around this issue by
-// detecting this case and forwarding them as "const char*", which is safe since immediate strings
-// have global lifetime.
-#ifdef _MSC_VER
-#define DECAY_IMMEDIATE_STRINGS_WHEN_FORWARDING
-#endif
-
 namespace detail
 {
-	// Generates a lambda that will invoke TargetState::OnEnter with matching args.
-	// We get a compiler-time error if a matching OnEnter is not found.
 	template <typename TargetState, typename... Args>
-	OnEnterArgsFunc DoGenerateOnEnterArgsFunc(Args&&... args)
-	{
-		static_assert(std::is_convertible<TargetState, State>::value, "TargetState must derive from hsm::State");
-
-		// Purposely capture args by copy rather than by reference in case args are
-		// created on the stack. Use std::ref() to wrap args that do not need to be copied.
-		return [args...](State* state)
-		{ 
-			HSM_ASSERT_MSG(state->GetStateType() == GetStateType<TargetState>(), 
-				"Type of state to call OnEnter on doesn't match original target state returned by transition");
-
-			static_cast<TargetState*>(state)->OnEnter(std::move(args)...); 
-		};
-	}
-
-	// Base case: do nothing
-	template <typename T>
-	T&& DecayIfImmediateString(T&& arg1)
-	{
-		return std::forward<T>(arg1);
-	}
-
-	// If immediate string, decay to const char*
-	template <size_t _Nx>
-	const char* DecayIfImmediateString(const char(&arr)[_Nx])
-	{
-		return static_cast<const char*>(arr);
-	}
-
-	template <typename TargetState, typename... Args>
-	OnEnterArgsFunc GenerateOnEnterArgsFunc(Args&&... args)
-	{
-#ifdef DECAY_IMMEDIATE_STRINGS_WHEN_FORWARDING
-		return DoGenerateOnEnterArgsFunc<TargetState>(DecayIfImmediateString(args)...);
-#else
-		return DoGenerateOnEnterArgsFunc<TargetState>(std::forward<Args>(args)...);
-#endif // DECAY_IMMEDIATE_STRINGS_WHEN_FORWARDING
-	}
-} // namespace detail
-
+	OnEnterArgsFunc GenerateOnEnterArgsFunc(Args&&... args);
+}
 
 // Transition objects are created via the free-standing transition functions below, and typically returned by
 // GetTransition. They can also be stored as data members, passed around, and returned later. They are meant
@@ -718,6 +669,61 @@ private:
 	StateTypeId mStateTypeId;
 	const hsm_char* mStateDebugName;
 };
+
+// MSVC 14 (VS 2015) doesn't handle generating lambdas that capture C-style arrays ("const T(&)[n]")
+// by value, emitting error "array initialization requires a brace-enclosed initializer list".
+// The most common case that this affects are immediate strings, so we work around this issue by
+// detecting this case and forwarding them as "const char*", which is safe since immediate strings
+// have global lifetime.
+#ifdef _MSC_VER
+#define DECAY_IMMEDIATE_STRINGS_WHEN_FORWARDING
+#endif
+
+namespace detail
+{
+	// Generates a lambda that will invoke TargetState::OnEnter with matching args.
+	// We get a compiler-time error if a matching OnEnter is not found.
+	template <typename TargetState, typename... Args>
+	OnEnterArgsFunc DoGenerateOnEnterArgsFunc(Args&&... args)
+	{
+		static_assert(std::is_convertible<TargetState, State>::value, "TargetState must derive from hsm::State");
+
+		// Purposely capture args by copy rather than by reference in case args are
+		// created on the stack. Use std::ref() to wrap args that do not need to be copied.
+		return[args...](State* state)
+		{
+			HSM_ASSERT_MSG(state->GetStateType() == GetStateType<TargetState>(),
+				"Type of state to call OnEnter on doesn't match original target state returned by transition");
+
+			static_cast<TargetState*>(state)->OnEnter(std::move(args)...);
+		};
+	}
+
+	// Base case: do nothing
+	template <typename T>
+	T&& DecayIfImmediateString(T&& arg1)
+	{
+		return std::forward<T>(arg1);
+	}
+
+	// If immediate string, decay to const char*
+	template <size_t _Nx>
+	const char* DecayIfImmediateString(const char(&arr)[_Nx])
+	{
+		return static_cast<const char*>(arr);
+	}
+
+	template <typename TargetState, typename... Args>
+	OnEnterArgsFunc GenerateOnEnterArgsFunc(Args&&... args)
+	{
+#ifdef DECAY_IMMEDIATE_STRINGS_WHEN_FORWARDING
+		return DoGenerateOnEnterArgsFunc<TargetState>(DecayIfImmediateString(args)...);
+#else
+		return DoGenerateOnEnterArgsFunc<TargetState>(std::forward<Args>(args)...);
+#endif // DECAY_IMMEDIATE_STRINGS_WHEN_FORWARDING
+	}
+} // namespace detail
+
 
 
 // StateWithOwner
