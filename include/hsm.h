@@ -18,7 +18,30 @@
 #ifndef __HSM_H__
 #define __HSM_H__
 
-#ifdef _MSC_VER
+// Compiler defines
+#if defined(__clang__)
+#define HSM_COMPILER_CLANG
+#elif defined(__GNUC__) || defined(__GNUG__)
+#define HSM_COMPILER_GCC
+#elif defined(_MSC_VER)
+#define HSM_COMPILER_MSC
+#endif
+
+#if defined(HSM_COMPILER_CLANG) || defined(HSM_COMPILER_GCC)
+#define HSM_COMPILER_CLANG_OR_GCC
+#endif
+
+// HSM_DEPRECATED macro
+#if defined(HSM_COMPILER_CLANG_OR_GCC)
+#define HSM_DEPRECATED(MESSAGE) __attribute__((deprecated("DEPRECATED: " MESSAGE)))
+#elif defined(HSM_COMPILER_MSC)
+#define HSM_DEPRECATED(MESSAGE) __declspec(deprecated("DEPRECATED: " MESSAGE))
+#else
+#pragma message("Implement HSM_DEPRECATED for this compiler")
+#define HSM_DEPRECATED
+#endif
+
+#ifdef HSM_COMPILER_MSC
 #pragma region "Config"
 #endif
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -41,12 +64,11 @@
 #endif
 #endif
 
-// If set, even if the compiler has RTTI enabled, this will force the usage of the custom HSM RTTI system
-#define HSM_FORCE_CUSTOM_RTTI 0
-
-// HSM_CPP_RTTI is set if the compiler has standard C++ RTTI support enabled
-#if !HSM_FORCE_CUSTOM_RTTI && ( (defined(_MSC_VER) && defined(_CPPRTTI)) || (defined(__GNUC__) && defined(__GXX_RTTI)) )
-#define HSM_CPP_RTTI 1
+// If set and C++ RTTI is enabled, will use C++ RTTI instead of the custom HSM RTTI system to
+// identify state types and return state names. Using C++ RTTI may yield better performance
+// when comparing StateTypeIds, but the state names returned are usually less human readable.
+#if !defined(HSM_USE_CPP_RTTI_IF_ENABLED)
+#define HSM_USE_CPP_RTTI_IF_ENABLED 1
 #endif
 
 #define HSM_STD_VECTOR std::vector
@@ -71,13 +93,13 @@ typedef char hsm_char;
 #define HSM_PRINTF ::printf
 #define STRCMP ::strcmp
 
-#ifdef _MSC_VER
+#ifdef HSM_COMPILER_MSC
 #define SNPRINTF ::_snprintf_s
 #else
 #define SNPRINTF ::snprintf
 #endif
 
-#ifdef _MSC_VER
+#ifdef HSM_COMPILER_MSC
 #define STRNCPY ::strncpy_s
 #else
 #define STRNCPY ::strncpy
@@ -101,18 +123,23 @@ typedef void Owner;
 
 } // namespace hsm
 
-#ifdef _MSC_VER
+#ifdef HSM_COMPILER_MSC
 #pragma endregion "Config"
 #endif
 
-#ifdef _MSC_VER
+#ifdef HSM_COMPILER_MSC
 #pragma region "RTTI"
 #endif
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // RTTI
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#if HSM_CPP_RTTI
+// HSM_USE_CPP_RTTI is set if the compiler has standard C++ RTTI support enabled
+#if HSM_USE_CPP_RTTI_IF_ENABLED && ( (defined(HSM_COMPILER_MSC) && defined(_CPPRTTI)) || (defined(HSM_COMPILER_CLANG_OR_GCC) && defined(__GXX_RTTI)) )
+#define HSM_USE_CPP_RTTI
+#endif
+
+#ifdef HSM_USE_CPP_RTTI
 
 #include <typeinfo>
 
@@ -121,35 +148,34 @@ namespace hsm {
 // We use standard C++ RTTI
 
 // We need a copyable wrapper around std::type_info since std::type_info is non-copyable
-struct StateTypeIdStorage
+struct StateTypeId
 {
-	StateTypeIdStorage() : m_typeInfo(0) { }
-	StateTypeIdStorage(const std::type_info& typeInfo) { m_typeInfo = &typeInfo; }
-	hsm_bool operator==(const StateTypeIdStorage& rhs) const
+	StateTypeId() : mTypeInfo(0) {}
+	StateTypeId(const std::type_info& typeInfo) : mTypeInfo(&typeInfo) {}
+	hsm_bool operator==(const StateTypeId& rhs) const
 	{
-		HSM_ASSERT_MSG(m_typeInfo != 0, "m_typeInfo was not properly initialized");
-		return *m_typeInfo == *rhs.m_typeInfo;
+		HSM_ASSERT_MSG(mTypeInfo != 0, "mTypeInfo was not properly initialized");
+		return *mTypeInfo == *rhs.mTypeInfo;
 	}
-	const std::type_info* m_typeInfo;
+	const std::type_info* mTypeInfo;
 };
 
-typedef const StateTypeIdStorage& StateTypeId;
+template <typename StateType>
+const StateTypeId& GetStateType()
+{
+	static StateTypeId stateTypeId(typeid(StateType));
+	return stateTypeId;
+}
 
 template <typename StateType>
-StateTypeId GetStateType()
+const char* GetStateName()
 {
-	static StateTypeIdStorage stateTypeId(typeid(StateType));
-	return stateTypeId;
+	return GetStateType<StateType>().mTypeInfo->name();
 }
 
 } // namespace hsm
 
-// DEFINE_HSM_STATE is NOT necessary; however, we define it here to nothing to make it easier to
-// test switching between compiler RTTI enabled or disabled.
-#define DEFINE_HSM_STATE(__StateName__)
-
-
-#else // !HSM_CPP_RTTI
+#else // !HSM_USE_CPP_RTTI
 
 namespace hsm {
 
@@ -157,24 +183,30 @@ namespace hsm {
 // DEFINE_HSM_STATE macro, which makes use of the input name of the state as the unique identifier. String
 // compares are used to determine equality.
 
-// Like std::type_info, we need to be able test equality and get a unique name
-struct StateTypeIdStorage
+// We need a comparable wrapper around the type name. We can't just compare const char* pointers
+// because GetTypeName<T> may return two different strings for the same T in different translation units.
+struct StateTypeId
 {
-	StateTypeIdStorage(const hsm_char* aStateName = 0) : mStateName(aStateName) {}
-	hsm_bool operator==(const StateTypeIdStorage& rhs) const
+	StateTypeId(const hsm_char* aStateName = 0) : mStateName(aStateName) {}
+	hsm_bool operator==(const StateTypeId& rhs) const
 	{
 		HSM_ASSERT_MSG(mStateName != 0, "StateTypeId was not properly initialized");
 		return STRCMP(mStateName, rhs.mStateName) == 0;
 	}
 	const hsm_char* mStateName;
 };
-
-typedef const StateTypeIdStorage& StateTypeId;
+	
+template <typename StateType>
+const StateTypeId& GetStateType()
+{
+	static StateTypeId stateTypeId = internal::GetTypeName<StateType>();
+	return stateTypeId;
+}
 
 template <typename StateType>
-StateTypeId GetStateType()
+const char* GetStateName()
 {
-	return StateType::GetStaticStateType();
+	return GetStateType().mStateName;
 }
 
 } // namespace hsm
@@ -185,13 +217,13 @@ StateTypeId GetStateType()
 	virtual hsm::StateTypeId DoGetStateType() const { return GetStaticStateType(); } \
 	virtual const hsm_char* DoGetStateDebugName() const { return HSM_TEXT(#__StateName__); }
 
-#endif // !HSM_CPP_RTTI
+#endif // !HSM_USE_CPP_RTTI
 
-#ifdef _MSC_VER
+#ifdef HSM_COMPILER_MSC
 #pragma endregion "RTTI"
 #endif
 
-#ifdef _MSC_VER
+#ifdef HSM_COMPILER_MSC
 #pragma region "Transition"
 #endif
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -212,6 +244,7 @@ const StateFactory& GetStateFactory();
 struct StateFactory
 {
 	virtual StateTypeId GetStateType() const = 0;
+	virtual const char* GetStateName() const = 0;
 	virtual State* AllocateState() const = 0;
 };
 
@@ -226,6 +259,11 @@ struct ConcreteStateFactory : StateFactory
 	virtual StateTypeId GetStateType() const
 	{
 		return hsm::GetStateType<TargetState>();
+	}
+
+	virtual const char* GetStateName() const
+	{
+		return hsm::GetStateName<TargetState>();
 	}
 
 	virtual State* AllocateState() const
@@ -259,54 +297,11 @@ struct StateOverride
 
 typedef std::function<void (State*)> OnEnterArgsFunc;
 
-// MSVC 14 (VS 2015) doesn't handle generating lambdas that capture C-style arrays ("const T(&)[n]")
-// by value, emitting error "array initialization requires a brace-enclosed initializer list".
-// The most common case that this affects are immediate strings, so we work around this issue by
-// detecting this case and forwarding them as "const char*", which is safe since immediate strings
-// have global lifetime.
-#ifdef _MSC_VER
-#define DECAY_IMMEDIATE_STRINGS_WHEN_FORWARDING
-#endif
-
 namespace detail
 {
-	// Generates a lambda that will invoke TargetState::OnEnter with matching args.
-	// We get a compiler-time error if a matching OnEnter is not found.
 	template <typename TargetState, typename... Args>
-	OnEnterArgsFunc DoGenerateOnEnterArgsFunc(Args&&... args)
-	{
-		static_assert(std::is_convertible<TargetState, State>::value, "TargetState must derive from hsm::State");
-
-		// Purposely capture args by copy rather than by reference in case args are
-		// created on the stack. Use std::ref() to wrap args that do not need to be copied.
-		return [args...](State* state) { (static_cast<TargetState*>(state))->OnEnter(std::move(args)...); };
-	}
-
-	// Base case: do nothing
-	template <typename T>
-	T&& DecayIfImmediateString(T&& arg1)
-	{
-		return std::forward<T>(arg1);
-	}
-
-	// If immediate string, decay to const char*
-	template <size_t _Nx>
-	const char* DecayIfImmediateString(const char(&arr)[_Nx])
-	{
-		return static_cast<const char*>(arr);
-	}
-
-	template <typename TargetState, typename... Args>
-	OnEnterArgsFunc GenerateOnEnterArgsFunc(Args&&... args)
-	{
-#ifdef DECAY_IMMEDIATE_STRINGS_WHEN_FORWARDING
-		return DoGenerateOnEnterArgsFunc<TargetState>(DecayIfImmediateString(args)...);
-#else
-		return DoGenerateOnEnterArgsFunc<TargetState>(std::forward<Args>(args)...);
-#endif // DECAY_IMMEDIATE_STRINGS_WHEN_FORWARDING
-	}
-} // namespace detail
-
+	OnEnterArgsFunc GenerateOnEnterArgsFunc(Args&&... args);
+}
 
 // Transition objects are created via the free-standing transition functions below, and typically returned by
 // GetTransition. They can also be stored as data members, passed around, and returned later. They are meant
@@ -330,7 +325,7 @@ struct Transition
 	}
 
 	// Transition with state args
-	Transition(Transition::Type transitionType, const StateFactory& stateFactory, OnEnterArgsFunc&& onEnterArgsFunc)
+	Transition(Transition::Type transitionType, const StateFactory& stateFactory, OnEnterArgsFunc onEnterArgsFunc)
 		: mTransitionType(transitionType)
 		, mStateFactory(&stateFactory)
 		, mOnEnterArgsFunc(std::move(onEnterArgsFunc))
@@ -375,11 +370,11 @@ Transition SiblingTransition(Args&&... args)
 	return Transition(Transition::Sibling, GetStateFactory<TargetState>(), detail::GenerateOnEnterArgsFunc<TargetState>(std::forward<Args>(args)...));
 }
 
+// Deprecated after v1.5 upon realizing that it's not possible to bind to the correct OnEnter for state
+// overrides since the actual target state is not known at compile time, but rather at runtime.
 template <typename TargetState, typename T1, typename... Args>
-Transition SiblingTransition(const StateOverride<TargetState>& stateOverride, T1&& arg1, Args&&... args)
-{
-	return Transition(Transition::Sibling, stateOverride.mStateFactory, detail::GenerateOnEnterArgsFunc<TargetState>(std::forward<T1>(arg1), std::forward<Args>(args)...));
-}
+HSM_DEPRECATED("Passing state args to state overrides is not supported")
+Transition SiblingTransition(const StateOverride<TargetState>& stateOverride, T1&& arg1, Args&&... args);
 
 // InnerTransition
 
@@ -401,10 +396,8 @@ Transition InnerTransition(Args&&... args)
 }
 
 template <typename TargetState, typename T1, typename... Args>
-Transition InnerTransition(const StateOverride<TargetState>& stateOverride, T1&& arg1, Args&&... args)
-{
-	return Transition(Transition::Inner, stateOverride.mStateFactory, detail::GenerateOnEnterArgsFunc<TargetState>(std::forward<T1>(arg1), std::forward<Args>(args)...));
-}
+HSM_DEPRECATED("Passing state args to state overrides is not supported") // See details on SiblingTransition version
+Transition InnerTransition(const StateOverride<TargetState>& stateOverride, T1&& arg1, Args&&... args);
 
 // InnerEntryTransition
 
@@ -426,11 +419,8 @@ Transition InnerEntryTransition(Args&&... args)
 }
 
 template <typename TargetState, typename T1, typename... Args>
-Transition InnerEntryTransition(const StateOverride<TargetState>& stateOverride, T1&& arg1, Args&&... args)
-{
-	return Transition(Transition::InnerEntry, stateOverride.mStateFactory, detail::GenerateOnEnterArgsFunc<TargetState>(std::forward<T1>(arg1), std::forward<Args>(args)...));
-}
-
+HSM_DEPRECATED("Passing state args to state overrides is not supported") // See details on SiblingTransition version
+Transition InnerEntryTransition(const StateOverride<TargetState>& stateOverride, T1&& arg1, Args&&... args);
 
 // NoTransition
 
@@ -441,11 +431,11 @@ inline Transition NoTransition()
 
 } // namespace hsm
 
-#ifdef _MSC_VER
+#ifdef HSM_COMPILER_MSC
 #pragma endregion "Transition"
 #endif
 
-#ifdef _MSC_VER
+#ifdef HSM_COMPILER_MSC
 #pragma region "State"
 #endif
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -517,7 +507,7 @@ struct ConcreteStateValueResetter : StateValueResetter
 
 namespace detail
 {
-	void InitState(State* state, StateMachine* ownerStateMachine, size_t stackDepth);
+	void InitState(State* state, StateMachine* ownerStateMachine, size_t stackDepth, const StateFactory& stateFactory);
 }
 
 struct State
@@ -644,17 +634,7 @@ struct State
 	StateOverride<SourceState> GetStateOverride();
 
 private:
-
-#if HSM_CPP_RTTI
-	StateTypeIdStorage DoGetStateType() const { return typeid(*this); }
-	const hsm_char* DoGetStateDebugName() const { return typeid(*this).name(); }
-#else
-	// These are implemented in each state via the DEFINE_HSM_STATE macro
-	virtual StateTypeId DoGetStateType() const = 0;
-	virtual const hsm_char* DoGetStateDebugName() const = 0;
-#endif
-
-	friend void detail::InitState(State* state, StateMachine* ownerStateMachine, size_t stackDepth);
+	friend void detail::InitState(State* state, StateMachine* ownerStateMachine, size_t stackDepth, const StateFactory& stateFactory);
 
 	template <typename T>
 	StateValue<T>* FindStateValueInResetterList(StateValue<T>& stateValue)
@@ -691,9 +671,64 @@ private:
 	StateValueResetterList mStateValueResetters;
 
 	// Values cached to avoid virtual call, especially since the values are constant
-	StateTypeIdStorage mStateTypeId;
+	StateTypeId mStateTypeId;
 	const hsm_char* mStateDebugName;
 };
+
+// MSVC 14 (VS 2015) doesn't handle generating lambdas that capture C-style arrays ("const T(&)[n]")
+// by value, emitting error "array initialization requires a brace-enclosed initializer list".
+// The most common case that this affects are immediate strings, so we work around this issue by
+// detecting this case and forwarding them as "const char*", which is safe since immediate strings
+// have global lifetime.
+#ifdef _MSC_VER
+#define DECAY_IMMEDIATE_STRINGS_WHEN_FORWARDING
+#endif
+
+namespace detail
+{
+	// Generates a lambda that will invoke TargetState::OnEnter with matching args.
+	// We get a compiler-time error if a matching OnEnter is not found.
+	template <typename TargetState, typename... Args>
+	OnEnterArgsFunc DoGenerateOnEnterArgsFunc(Args&&... args)
+	{
+		static_assert(std::is_convertible<TargetState, State>::value, "TargetState must derive from hsm::State");
+
+		// Purposely capture args by copy rather than by reference in case args are
+		// created on the stack. Use std::ref() to wrap args that do not need to be copied.
+		return[args...](State* state)
+		{
+			HSM_ASSERT_MSG(state->GetStateType() == GetStateType<TargetState>(),
+				"Type of state to call OnEnter on doesn't match original target state returned by transition");
+
+			static_cast<TargetState*>(state)->OnEnter(std::move(args)...);
+		};
+	}
+
+	// Base case: do nothing
+	template <typename T>
+	T&& DecayIfImmediateString(T&& arg1)
+	{
+		return std::forward<T>(arg1);
+	}
+
+	// If immediate string, decay to const char*
+	template <size_t _Nx>
+	const char* DecayIfImmediateString(const char(&arr)[_Nx])
+	{
+		return static_cast<const char*>(arr);
+	}
+
+	template <typename TargetState, typename... Args>
+	OnEnterArgsFunc GenerateOnEnterArgsFunc(Args&&... args)
+	{
+#ifdef DECAY_IMMEDIATE_STRINGS_WHEN_FORWARDING
+		return DoGenerateOnEnterArgsFunc<TargetState>(DecayIfImmediateString(args)...);
+#else
+		return DoGenerateOnEnterArgsFunc<TargetState>(std::forward<Args>(args)...);
+#endif // DECAY_IMMEDIATE_STRINGS_WHEN_FORWARDING
+	}
+} // namespace detail
+
 
 
 // StateWithOwner
@@ -729,11 +764,11 @@ private:
 
 } // namespace hsm
 
-#ifdef _MSC_VER
+#ifdef HSM_COMPILER_MSC
 #pragma endregion "State"
 #endif
 
-#ifdef _MSC_VER
+#ifdef HSM_COMPILER_MSC
 #pragma region "StateMachine"
 #endif
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -852,9 +887,8 @@ public:
 	template <typename SourceState>
 	const StateFactory& GetStateOverride();
 
-
-	//@DEPRECATED: Initialize should no longer accept debug info. Use SetDebugInfo instead.
 	template <typename InitialStateType>
+	HSM_DEPRECATED("Initialize should no longer accept debug info. Use SetDebugInfo instead.")
 	void Initialize(Owner* owner, const hsm_char* debugName, size_t debugLevel)
 	{
 		HSM_ASSERT(mInitialTransition.IsNo());
@@ -863,13 +897,13 @@ public:
 		SetDebugInfo(debugName, debugLevel);
 	}
 
-	//@DEPRECATED: Use SetDebugInfo(const hsm_char*, TraceLevel::Type)
-	void SetDebugInfo(const hsm_char* name, size_t level) { SetDebugName(name); SetDebugLevel(level); }
+	HSM_DEPRECATED("Use SetDebugInfo(const hsm_char*, TraceLevel::Type)")
+	void SetDebugInfo(const hsm_char* name, size_t level) { SetDebugName(name); SetDebugTraceLevel(static_cast<TraceLevel::Type>(level)); }
 
-	//@DEPRECATED: Use SetDebugTraceLevel
+	HSM_DEPRECATED("Use SetDebugTraceLevel")
 	void SetDebugLevel(size_t level) { SetDebugTraceLevel(static_cast<TraceLevel::Type>(level)); }
 
-	//@DEPRECATED: Use GetDebugTraceLevel
+	HSM_DEPRECATED("Use GetDebugLevel")
 	size_t GetDebugLevel() { return static_cast<size_t>(GetDebugTraceLevel()); }
 
 private:
@@ -1017,20 +1051,20 @@ inline const StateFactory& StateMachine::GetStateOverride()
 
 namespace detail
 {
-	inline void InitState(State* state, StateMachine* ownerStateMachine, size_t stackDepth)
+	inline void InitState(State* state, StateMachine* ownerStateMachine, size_t stackDepth, const StateFactory& stateFactory)
 	{
 		HSM_ASSERT(ownerStateMachine != 0);
 		state->mOwnerStateMachine = ownerStateMachine;
 		state->mOwner = ownerStateMachine->GetOwner();
 		state->mStackDepth = stackDepth;
-		state->mStateTypeId = state->DoGetStateType();
-		state->mStateDebugName = state->DoGetStateDebugName();
+		state->mStateTypeId = stateFactory.GetStateType();
+		state->mStateDebugName = stateFactory.GetStateName();
 	}
 
 	inline State* CreateState(const Transition& transition, StateMachine* ownerStateMachine, size_t stackDepth)
 	{
 		State* state = transition.GetStateFactory().AllocateState();
-		InitState(state, ownerStateMachine, stackDepth);
+		InitState(state, ownerStateMachine, stackDepth, transition.GetStateFactory());
 		return state;
 	}
 
@@ -1347,7 +1381,7 @@ inline void StateMachine::LogTransition(size_t minLevel, size_t depth, const hsm
 
 } // namespace hsm
 
-#ifdef _MSC_VER
+#ifdef HSM_COMPILER_MSC
 #pragma endregion "StateMachine"
 #endif
 
