@@ -31,6 +31,16 @@
 #define HSM_COMPILER_CLANG_OR_GCC
 #endif
 
+// HSM_DEPRECATED macro
+#if defined(HSM_COMPILER_CLANG_OR_GCC)
+#define HSM_DEPRECATED(MESSAGE) __attribute__((deprecated("DEPRECATED: " MESSAGE)))
+#elif defined(HSM_COMPILER_MSC)
+#define HSM_DEPRECATED(MESSAGE) __declspec(deprecated("DEPRECATED: " MESSAGE))
+#else
+#pragma message("Implement HSM_DEPRECATED for this compiler")
+#define HSM_DEPRECATED
+#endif
+
 #ifdef HSM_COMPILER_MSC
 #pragma region "Config"
 #endif
@@ -882,9 +892,8 @@ public:
 	template <typename SourceState>
 	const StateFactory& GetStateOverride();
 
-
-	//@DEPRECATED: Initialize should no longer accept debug info. Use SetDebugInfo instead.
 	template <typename InitialStateType>
+	HSM_DEPRECATED("Initialize should no longer accept debug info. Use SetDebugInfo instead.")
 	void Initialize(Owner* owner, const hsm_char* debugName, size_t debugLevel)
 	{
 		HSM_ASSERT(mInitialTransition.IsNo());
@@ -893,13 +902,13 @@ public:
 		SetDebugInfo(debugName, debugLevel);
 	}
 
-	//@DEPRECATED: Use SetDebugInfo(const hsm_char*, TraceLevel::Type)
-	void SetDebugInfo(const hsm_char* name, size_t level) { SetDebugName(name); SetDebugLevel(level); }
+	HSM_DEPRECATED("Use SetDebugInfo(const hsm_char*, TraceLevel::Type)")
+	void SetDebugInfo(const hsm_char* name, size_t level) { SetDebugName(name); SetDebugTraceLevel(static_cast<TraceLevel::Type>(level)); }
 
-	//@DEPRECATED: Use SetDebugTraceLevel
+	HSM_DEPRECATED("Use SetDebugTraceLevel")
 	void SetDebugLevel(size_t level) { SetDebugTraceLevel(static_cast<TraceLevel::Type>(level)); }
 
-	//@DEPRECATED: Use GetDebugTraceLevel
+	HSM_DEPRECATED("Use GetDebugLevel")
 	size_t GetDebugLevel() { return static_cast<size_t>(GetDebugTraceLevel()); }
 
 private:
