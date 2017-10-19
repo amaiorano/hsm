@@ -175,6 +175,10 @@ const char* GetStateName()
 
 } // namespace hsm
 
+// DEFINE_HSM_STATE is NOT necessary; however, we define it here to nothing to make it easier to
+// test switching between compiler RTTI enabled or disabled.
+#define DEFINE_HSM_STATE(__StateName__)
+
 #else // !HSM_USE_CPP_RTTI
 
 namespace hsm {
@@ -197,23 +201,22 @@ struct StateTypeId
 };
 	
 template <typename StateType>
-const StateTypeId& GetStateType()
+StateTypeId GetStateType()
 {
-	static StateTypeId stateTypeId = internal::GetTypeName<StateType>();
-	return stateTypeId;
+	return StateType::GetStaticStateType();
 }
 
 template <typename StateType>
 const char* GetStateName()
 {
-	return GetStateType().mStateName;
+	return GetStateType<StateType>().mStateName;
 }
 
 } // namespace hsm
 
 // Must use this macro in every State to add RTTI support.
 #define DEFINE_HSM_STATE(__StateName__) \
-	static hsm::StateTypeId GetStaticStateType() { static hsm::StateTypeIdStorage sStateTypeId(HSM_TEXT(#__StateName__)); return sStateTypeId; } \
+	static hsm::StateTypeId GetStaticStateType() { static hsm::StateTypeId sStateTypeId(HSM_TEXT(#__StateName__)); return sStateTypeId; } \
 	virtual hsm::StateTypeId DoGetStateType() const { return GetStaticStateType(); } \
 	virtual const hsm_char* DoGetStateDebugName() const { return HSM_TEXT(#__StateName__); }
 
