@@ -780,7 +780,9 @@ namespace hsm {
 // State stack types
 typedef HSM_STD_VECTOR<State*> StackType;
 typedef StackType::iterator OuterToInnerIterator;
+typedef StackType::const_iterator ConstOuterToInnerIterator;
 typedef StackType::reverse_iterator InnerToOuterIterator;
+typedef StackType::const_reverse_iterator ConstInnerToOuterIterator;
 
 namespace TraceLevel
 {
@@ -861,6 +863,11 @@ public:
 	OuterToInnerIterator EndOuterToInner() { return mStateStack.end(); }
 	InnerToOuterIterator BeginInnerToOuter() { return mStateStack.rbegin(); }
 	InnerToOuterIterator EndInnerToOuter() { return mStateStack.rend(); }
+
+	ConstOuterToInnerIterator BeginOuterToInner() const { return mStateStack.cbegin(); }
+	ConstOuterToInnerIterator EndOuterToInner() const { return mStateStack.cend(); }
+	ConstInnerToOuterIterator BeginInnerToOuter() const { return mStateStack.crbegin(); }
+	ConstInnerToOuterIterator EndInnerToOuter() const { return mStateStack.crend(); }
 
 	// State stack query functions
 
