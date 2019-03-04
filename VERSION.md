@@ -1,4 +1,4 @@
-= Version: 1.5.2 =
+= Version: 1.5.3 =
 
 == 1.5 ==
 - Improve StateArgs mechanism to make use of C++11 variadic template arguments

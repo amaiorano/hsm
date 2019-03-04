@@ -7,7 +7,7 @@ import tempfile
 def PrintUsage():
 	print """
 Plots an HSM defined in cpp file(s) via hsmToDot -> dot -> default image viewer
-Requires GraphViz 2.18 (Windows: http://www.graphviz.org/pub/graphviz/stable/windows/graphviz-2.18.exe)
+Requires GraphViz (Windows: https://graphviz.gitlab.io/_pages/Download/Download_windows.html)
 
 Usage: {} <filespec>
 	""".format(os.path.basename(sys.argv[0]))
@@ -33,7 +33,7 @@ def main(argv = None):
 		
 	# Write dot file
 	dotFile = os.path.join(tempfile.gettempdir(), os.path.basename(filespec) + '.dot')
-	ExecCommand(os.path.join(GetScriptPath(), 'hsmToDot.py') + ' ' + filespec + ' > ' + dotFile)
+	ExecCommand('"{}" {}'.format(sys.executable, os.path.join(GetScriptPath(), 'hsmToDot.py') + ' ' + filespec + ' > ' + dotFile))
 	
 	# Invoke dot to produce image
 	pngFile = dotFile + '.png'
