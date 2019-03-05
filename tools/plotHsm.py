@@ -3,6 +3,7 @@
 import os
 import sys
 import tempfile
+import platform
 
 def PrintUsage():
 	print """
@@ -20,6 +21,15 @@ def ExecCommand(command):
 	result = os.system(command)
 	if result != 0:
 		raise Exception("Command failed!")
+
+def OpenImage(command):
+	curr_platform = platform.system()
+	if curr_platform == 'Linux':
+		ExecCommand('xdg-open ' + command)
+	elif curr_platform == 'Windows':
+		ExecCommand(command)
+	else:
+		raise Exception("Unknown platform")
 
 def main(argv = None):
 	if argv is None:
@@ -40,7 +50,7 @@ def main(argv = None):
 	ExecCommand('dot ' + dotFile + ' -Tpng -o' + pngFile)
 	
 	# Open default image viewer
-	ExecCommand(pngFile)
+	OpenImage(pngFile)
 
 if __name__ == "__main__":
 	sys.exit(main())
